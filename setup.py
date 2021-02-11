@@ -17,6 +17,7 @@ setuptools.setup(
     url="https://github.com/goodhertz/drafting",
     packages=[
         "drafting",
+        "drafting.sh",
         "drafting.grid",
         "drafting.color",
         "drafting.geometry",
