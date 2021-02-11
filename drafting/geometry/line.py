@@ -10,6 +10,13 @@ class Line(Geometrical):
         self.start = Point(start)
         self.end = Point(end)
     
+    def __eq__(self, l):
+        if not hasattr(l, "start"):
+            return False
+        return self.start == l.start and self.end == l.end
+
+    __hash__ = object.__hash__
+    
     @property
     def mid(self):
         return self.start.i(0.5, self.end)

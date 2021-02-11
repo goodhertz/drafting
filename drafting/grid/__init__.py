@@ -57,6 +57,9 @@ class Grid():
         self.keyed = None
         self.update()
     
+    def __repr__(self):
+        return f"Grid({list(self.keyed.keys())})"
+    
     def clone(self, other_grid):
         self.columns = other_grid.columns
         self.rows = other_grid.rows

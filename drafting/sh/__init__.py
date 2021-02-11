@@ -2,6 +2,7 @@ import re
 from pprint import pprint
 from more_itertools import split_at, split_before
 from drafting.geometry import Point, Line, Rect
+from drafting.sh.context import SHLookup, SHContext
 
 
 SH_UNARY_SUFFIX_FUNCS = {
@@ -43,13 +44,9 @@ SH_UNARY_SUFFIX_PROPS = {
 
 SH_BINARY_OPS = {
     "I": "inset",
-    "𝓘": "inset",
     "O": "offset",
-    "𝓞": "offset",
     "C": "columns",
-    "𝓒": "columns",
     "R": "rows",
-    "𝓡": "rows",
     "@": "__getitem__",
     "↕": "extr",
 }
@@ -64,7 +61,7 @@ SH_BINARY_OPS_EDGEAWARE = {
 SH_JOINS = {
     "⨝": ["join"],
     "∩": ["intersection"],
-    "∮": lambda a, b: f"DP().mt({a}.start).lt({a}.end).lt({b}.end).lt({b}.start).cp()"
+    "∮": lambda a, b: f"DP().mt({a}.start).lt({a}.end).lt({b}.end).lt({b}.start).cp()" # TODO SH_JOINS should be a configurable dict on the ctx, so this DP() stuff can be lifted up to coldtype.pens.datpen
 }
 
 SH_BACKREFS = {
@@ -200,9 +197,9 @@ def shgroup(s):
     
     return shphrase(s)
 
-def sh(s, ctx={}, dps=None):
+def sh(s, ctx:SHContext, dps=None):
     evaled = []
-    last_locals = {}
+    last_locals = {**ctx.locals}
     s = s.replace("_", "")
     s = "ƒ"+re.sub(r"[\s\n]+", "ƒ", s).strip()
 
@@ -217,14 +214,12 @@ def sh(s, ctx={}, dps=None):
         py = (shgroup(phrase))
         if not py:
             return None
-        py = py.replace("$", "ctx.c.")
-        py = py.replace("&", "ctx.")
-        if hasattr(ctx, "bx"):
-            py = py.replace("□", "ctx.bx")
-        else:
-            py = py.replace("□", "ctx.bounds()")
-        if dps is not None:
-            py = py.replace("■", "_dps.bounds()")
+        
+        for k, v in ctx.lookups.items():
+            py = py.replace(v.symbol, f"ctx.{k}.")
+
+        for k, v in ctx.subs.items():
+            py = py.replace(k, v(ctx) if callable(v) else v)
 
         try:
             res = eval(py, dict(
@@ -250,12 +245,13 @@ def sh(s, ctx={}, dps=None):
     splits = ["ƒ"]
     splits.extend(SH_EXPLODES.keys())
 
+    s = re.sub("ƒ\-[^ƒ]+", "", s)
+
     for phrase in split_before(s, lambda x: x in splits):
         phrase = "".join(phrase).strip()
+        #print("PHRASE", phrase)
         last = None
         if not phrase:
-            continue
-        if phrase.startswith("-"):
             continue
         if phrase[0] in SH_EXPLODES:
             phrase = "_last"+phrase[1:]
@@ -266,8 +262,7 @@ def sh(s, ctx={}, dps=None):
             continue
 
         if phrase == "∫":
-            join_to_path = True
-            continue
+            phrase = "'∫'"
 
         more = []
         if "|" in phrase:
@@ -293,6 +288,4 @@ def sh(s, ctx={}, dps=None):
         if dps is not None:
             dps.append(evaled[-1])
     
-    if join_to_path and dps:
-        return [dps.single_pen_class().gs(evaled)]
     return evaled
