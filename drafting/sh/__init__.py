@@ -221,6 +221,8 @@ def sh(s, ctx:SHContext, dps=None):
         for k, v in ctx.subs.items():
             py = py.replace(k, v(ctx) if callable(v) else v)
 
+        #print("EVAL:", py)
+
         try:
             res = eval(py, dict(
                 ctx=ctx,
