@@ -1,13 +1,15 @@
 from fontTools.pens.recordingPen import RecordingPen
 from drafting.geometry import Geometrical, Atom, Point, Line, Rect
+from drafting.sh import sh, SHContext
 
 
-class DraftingPen(RecordingPen):
+class DraftingPen(RecordingPen, SHContext):
     """Fluent subclass of RecordingPen"""
 
     def __init__(self, *args):
 		self.value = []
         self._tag = None
+        self._frame = None
 
         for idx, arg in enumerate(args):
             if isinstance(arg, str):
@@ -21,12 +23,64 @@ class DraftingPen(RecordingPen):
             elif isinstance(arg, Point):
                 self.oval(Rect.FromCenter(arg, 50, 50))
     
+    def __repr__(self):
+        s = f"DraftingPen<"
+        if self._tag:
+            s += self._tag + ":"
+        s += f"{len(self.value)}mvs:"
+        if self.value[-1][0] == "closePath":
+            s += "closed"
+        elif self.value[-1][0] == "endPath":
+            s += "end"
+        else:
+            s += "open"
+        s += "/>"
+        return s
+    
     def tag(self, value=None):
         if value:
-            self._tag = value
+            if isinstance(value, str):
+                self._tag = value
             return self
         else:
             return self._tag
+        
+    def frame(self, value=None):
+        if value:
+            if isinstance(value, Rect):
+                self._frame = value
+            return self
+        else:
+            return self._frame
+    
+    def define(self, *args, **kwargs):
+        return self.context_record("$", "defs", *args, **kwargs)
+    
+    def sh(self, s, fn=None, tag=None):
+        if isinstance(s, str):
+            e = sh(s, self)
+        else:
+            e = s
+
+        self.moveTo(e[0])
+        for _e in e[1:]:
+            if _e is None:
+                continue
+            elif isinstance(_e, Point):
+                self.lineTo(_e)
+            elif isinstance(_e, str):
+                getattr(self, _e)()
+            elif len(_e) == 3:
+                self.boxCurveTo(_e[-1], _e[0], _e[1])
+        
+        if self.is_unended():
+            self.closePath()
+
+        if tag:
+            self.tag(tag)
+        if fn:
+            fn(self)
+        return self
 
 	def moveTo(self, p0):
         super().moveTo(p0)
@@ -100,4 +154,55 @@ class DraftingPen(RecordingPen):
     def oval(self, rect):
         """Oval primitive"""
         self.roundedRect(rect, 0.5, 0.5)
+        return self
+
+    def line(self, points, moveTo=True, endPath=True):
+        """Syntactic sugar for `moveTo`+`lineTo`(...)+`endPath`; can have any number of points"""
+        if isinstance(points, Line):
+            points = list(points)
+        if len(points) == 0:
+            return self
+        if len(self.value) == 0 or moveTo:
+            self.moveTo(points[0])
+        else:
+            self.lineTo(points[0])
+        for p in points[1:]:
+            self.lineTo(p)
+        if endPath:
+            self.endPath()
+        return self
+    
+    def boxCurveTo(self, pt, point, factor, mods={}):
+        a = Point(self.value[-1][-1][-1])
+        d = Point(pt)
+        box = Rect.FromMnMnMxMx([min(a.x, d.x), min(a.y, d.y), max(a.x, d.x), max(a.y, d.y)])
+        try:
+            f1, f2 = factor
+        except TypeError:
+            if isinstance(factor, Atom):
+                f1, f2 = (factor[0], factor[0])
+            else:
+                f1, f2 = (factor, factor)
+
+        if isinstance(point, str):
+            p = box.point(point)
+            p1, p2 = (p, p)
+        elif isinstance(point, Point):
+            p1, p2 = point, point
+        else:
+            p1, p2 = point
+            p1 = box.point(p1)
+            p2 = box.point(p2)
+        
+        b = a.interp(f1, p1)
+        c = d.interp(f2, p2)
+
+        mb = mods.get("b")
+        mc = mods.get("c")
+        if mb:
+            b = mb(b)
+        elif mc:
+            c = mc(c)
+        
+        self.curveTo(b, c, d)
         return self
