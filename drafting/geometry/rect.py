@@ -720,6 +720,6 @@ class Rect(Geometrical):
         ws = self.parse_line(r.h, _xs)
         rs = []
         for w in ws:
-            _r, r = r.divide(w, "mny")
+            _r, r = r.divide(w, "mxy")
             rs.append(_r)
         return rs

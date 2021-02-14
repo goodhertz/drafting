@@ -61,7 +61,7 @@ SH_BINARY_OPS_EDGEAWARE = {
 SH_JOINS = {
     "⨝": ["join"],
     "∩": ["intersection"],
-    "∮": lambda a, b: f"DP().mt({a}.start).lt({a}.end).lt({b}.end).lt({b}.start).cp()" # TODO SH_JOINS should be a configurable dict on the ctx, so this DP() stuff can be lifted up to coldtype.pens.datpen
+    "∮": lambda a, b: f"DraftingPen().moveTo({a}.start).lineTo({a}.end).lineTo({b}.end).lineTo({b}.start).closePath()"
 }
 
 SH_BACKREFS = {
@@ -198,6 +198,8 @@ def shgroup(s):
     return shphrase(s)
 
 def sh(s, ctx:SHContext, dps=None):
+    from drafting.pens.draftingpen import DraftingPen
+
     evaled = []
     last_locals = {**ctx.locals}
     s = s.replace("_", "")
@@ -231,7 +233,7 @@ def sh(s, ctx:SHContext, dps=None):
                 Point=Point,
                 Line=Line,
                 Rect=Rect,
-                DP=dps.single_pen_class if dps is not None else None)
+                DraftingPen=DraftingPen)
                 , last_locals)
             return res
         except SyntaxError as e:

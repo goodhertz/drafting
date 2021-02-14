@@ -24,6 +24,7 @@ setuptools.setup(
         "drafting.interpolation"
     ],
     install_requires=[
+        "fonttools",
         "more-itertools"
     ],
     classifiers=[
