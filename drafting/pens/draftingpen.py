@@ -1,4 +1,6 @@
 from fontTools.pens.recordingPen import RecordingPen
+from fontTools.pens.reverseContourPen import ReverseContourPen
+
 from drafting.geometry import Geometrical, Atom, Point, Line, Rect
 from drafting.sh import sh, SHContext
 
@@ -7,14 +9,16 @@ class DraftingPen(RecordingPen, SHContext):
     """Fluent subclass of RecordingPen"""
 
     def __init__(self, *args):
-		self.value = []
+        SHContext.__init__(self)
+        RecordingPen.__init__(self)
+
         self._tag = None
         self._frame = None
 
         for idx, arg in enumerate(args):
             if isinstance(arg, str):
                 self.tag(arg)
-            elif isinstance(arg, DATPen):
+            elif isinstance(arg, DraftingPen):
                 self.replace_with(arg)
             elif isinstance(arg, Rect):
                 self.rect(arg)
@@ -56,6 +60,23 @@ class DraftingPen(RecordingPen, SHContext):
     def define(self, *args, **kwargs):
         return self.context_record("$", "defs", *args, **kwargs)
     
+    def unended(self):
+        if len(self.value) == 0:
+            return True
+        elif self.value[-1][0] not in ["endPath", "closePath"]:
+            return True
+        return False
+    
+    def reverse(self):
+        """Reverse the winding direction of the pen."""
+        if self.is_unended():
+            self.closePath()
+        dp = DATPen()
+        rp = ReverseContourPen(dp)
+        self.replay(rp)
+        self.value = dp.value
+        return self
+    
     def sh(self, s, fn=None, tag=None):
         if isinstance(s, str):
             e = sh(s, self)
@@ -63,6 +84,7 @@ class DraftingPen(RecordingPen, SHContext):
             e = s
 
         self.moveTo(e[0])
+
         for _e in e[1:]:
             if _e is None:
                 continue
@@ -73,7 +95,7 @@ class DraftingPen(RecordingPen, SHContext):
             elif len(_e) == 3:
                 self.boxCurveTo(_e[-1], _e[0], _e[1])
         
-        if self.is_unended():
+        if self.unended():
             self.closePath()
 
         if tag:
@@ -82,35 +104,35 @@ class DraftingPen(RecordingPen, SHContext):
             fn(self)
         return self
 
-	def moveTo(self, p0):
+    def moveTo(self, p0):
         super().moveTo(p0)
         return self
 
-	def lineTo(self, p1):
+    def lineTo(self, p1):
         super().lineTo(p1)
         return self
 
-	def qCurveTo(self, *points):
+    def qCurveTo(self, *points):
         super().qCurveTo(*points)
         return self
 
-	def curveTo(self, *points):
+    def curveTo(self, *points):
         super().curveTo(*points)
         return self
 
-	def closePath(self):
-		super().closesPath()
+    def closePath(self):
+        super().closePath()
         return self
 
-	def endPath(self):
+    def endPath(self):
         super().endPath()
         return self
 
-	def addComponent(self, glyphName, transformation):
+    def addComponent(self, glyphName, transformation):
         super().addComponent(glyphName, transformation)
         return self
 
-	def replay(self, pen):
+    def replay(self, pen):
         super().replay(pen)
         return self
     
