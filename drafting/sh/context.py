@@ -79,7 +79,7 @@ class SHContext():
         return lk
     
     def context_record(self, symbol, lookup, *args, **kwargs):
-        if not hasattr(self, lookup):
+        if not hasattr(self, lookup) or getattr(self, lookup) is None:
             self.registered_lookup(symbol, lookup)
         self.lookups[lookup].record_many(self, *args, **kwargs)
         return self

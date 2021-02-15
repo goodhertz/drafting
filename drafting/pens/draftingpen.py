@@ -1,7 +1,13 @@
+import math
+from typing import Callable
+
+from fontTools.misc.transform import Transform
+from fontTools.pens.boundsPen import BoundsPen
 from fontTools.pens.recordingPen import RecordingPen
+from fontTools.pens.transformPen import TransformPen
 from fontTools.pens.reverseContourPen import ReverseContourPen
 
-from drafting.geometry import Geometrical, Atom, Point, Line, Rect
+from drafting.geometry import Atom, Point, Line, Rect, align
 from drafting.sh import sh, SHContext
 
 
@@ -14,8 +20,12 @@ class DraftingPen(RecordingPen, SHContext):
 
         self._tag = None
         self._frame = None
+        self._visible = True
+        self._parent = None
 
-        for idx, arg in enumerate(args):
+        self.defs = None
+
+        for _, arg in enumerate(args):
             if isinstance(arg, str):
                 self.tag(arg)
             elif isinstance(arg, DraftingPen):
@@ -28,7 +38,7 @@ class DraftingPen(RecordingPen, SHContext):
                 self.oval(Rect.FromCenter(arg, 50, 50))
     
     def __repr__(self):
-        s = f"DraftingPen<"
+        s = f"{type(self).__name__}<"
         if self._tag:
             s += self._tag + ":"
         s += f"{len(self.value)}mvs:"
@@ -57,8 +67,54 @@ class DraftingPen(RecordingPen, SHContext):
         else:
             return self._frame
     
+    def visible(self, value=None):
+        if value:
+            self._visible = value
+            return self
+        else:
+            return self._visible
+        
+    def bounds(self):
+        """Calculate the bounds of this shape; mostly for internal use."""
+        try:
+            cbp = BoundsPen(None)
+            self.replay(cbp)
+            mnx, mny, mxx, mxy = cbp.bounds
+            return Rect((mnx, mny, mxx - mnx, mxy - mny))
+        except:
+            return Rect(0, 0, 0, 0)
+    
+    def ambit(self, th=False, tv=False):
+        """Get the calculated rect boundary of the DraftingPen;
+        `th` means `(t)rue (h)orizontal`;
+        `ty` means `(t)rue (v)ertical`;
+        passing either ignores a non-bounds-derived frame
+        in either dimension"""
+        if self._frame:
+            if (th or tv) and len(self.value) > 0:
+                f = self._frame
+                b = self.bounds()
+                if th and tv:
+                    return b
+                elif th:
+                    return Rect(b.x, f.y, b.w, f.h)
+                else:
+                    return Rect(f.x, b.y, f.w, b.h)
+            else:
+                return self._frame
+        else:
+            return self.bounds()
+    
     def define(self, *args, **kwargs):
         return self.context_record("$", "defs", *args, **kwargs)
+    
+    def print(self, *args):
+        for a in args:
+            if callable(a):
+                print(a(self))
+            else:
+                print(a)
+        return self
     
     def unended(self):
         if len(self.value) == 0:
@@ -69,31 +125,39 @@ class DraftingPen(RecordingPen, SHContext):
     
     def reverse(self):
         """Reverse the winding direction of the pen."""
-        if self.is_unended():
+        if self.unended():
             self.closePath()
-        dp = DATPen()
+        dp = type(self)()
         rp = ReverseContourPen(dp)
         self.replay(rp)
         self.value = dp.value
         return self
+    
+    def __invert__(self):
+        return self.reverse()
     
     def sh(self, s, fn=None, tag=None):
         if isinstance(s, str):
             e = sh(s, self)
         else:
             e = s
-
-        self.moveTo(e[0])
-
-        for _e in e[1:]:
+        
+        def one_move(_e, move="lineTo"):
             if _e is None:
-                continue
+                return
             elif isinstance(_e, Point):
-                self.lineTo(_e)
+                getattr(self, move)(_e)
+            elif isinstance(_e, Rect):
+                self.rect(_e)
             elif isinstance(_e, str):
                 getattr(self, _e)()
             elif len(_e) == 3:
                 self.boxCurveTo(_e[-1], _e[0], _e[1])
+
+        one_move(e[0], move="moveTo")
+
+        for _e in e[1:]:
+            one_move(_e, move="lineTo")
         
         if self.unended():
             self.closePath()
@@ -136,7 +200,7 @@ class DraftingPen(RecordingPen, SHContext):
         super().replay(pen)
         return self
     
-    def rect(self, rect, *args):
+    def rect(self, rect):
         """Rectangle primitive — `moveTo/lineTo/lineTo/lineTo/closePath`"""
         self.moveTo(rect.point("SW").xy())
         self.lineTo(rect.point("SE").xy())
@@ -228,3 +292,152 @@ class DraftingPen(RecordingPen, SHContext):
         
         self.curveTo(b, c, d)
         return self
+    
+    def vl(self, value):
+        self.value = value
+        return self
+    
+    def replace_with(self, other):
+        return self.vl(other.value)
+    
+    def pvl(self):
+        for idx, (_, pts) in enumerate(self.value):
+            if len(pts) > 0:
+                self.value[idx] = list(self.value[idx])
+                self.value[idx][-1] = [Point(p) for p in self.value[idx][-1]]
+        return self
+    
+    def copy(self, with_data=False):
+        dp = type(self)(self)
+        if with_data:
+            dp._frame = self._frame
+            dp.defs = self.defs # necessary to copy this?
+        else:
+            dp.defs = self.defs
+        return dp
+    
+    def round(self):
+        """Round the values of this pen to integer values."""
+        return self.round_to(1)
+
+    def round_to(self, rounding):
+        """Round the values of this pen to nearest multiple of rounding."""
+        def rt(v, mult):
+            rndd = float(round(v / mult) * mult)
+            if rndd.is_integer():
+                return int(rndd)
+            else:
+                return rndd
+        
+        rounded = []
+        for t, pts in self.value:
+            _rounded = []
+            for p in pts:
+                if p:
+                    x, y = p
+                    _rounded.append((rt(x, rounding), rt(y, rounding)))
+                else:
+                    _rounded.append(p)
+            rounded.append((t, _rounded))
+        
+        self.value = rounded
+        return self
+
+    def transform(self, transform, transformFrame=True):
+        """Perform an arbitrary transformation on the pen, using the fontTools `Transform` class."""
+        op = RecordingPen()
+        tp = TransformPen(op, transform)
+        self.replay(tp)
+        self.value = op.value
+        if transformFrame and self._frame:
+            self._frame = self._frame.transform(transform)
+        return self
+    
+    def align(self, rect, x="mdx", y="mdy", th=True, tv=False, transformFrame=True):
+        r = self.ambit(th, tv)
+        self.translate(*align(r, rect, x, y))
+        return self
+    
+    def translate(self, x, y=None, transformFrame=True):
+        """Translate this shape by `x` and `y` (pixel values)."""
+        if y is None:
+            y = x
+        return self.transform(Transform(1, 0, 0, 1, x, y), transformFrame=transformFrame)
+    
+    def skew(self, x=0, y=0, point=None):
+        t = Transform()
+        if not point:
+            point = self.bounds().point("C") # maybe should be getFrame()?
+        t = t.translate(point.x, point.y)
+        t = t.skew(x, y)
+        t = t.translate(-point.x, -point.y)
+        return self.transform(t)
+    
+    def rotate(self, degrees, point=None):
+        """Rotate this shape by a degree (in 360-scale, counterclockwise)."""
+        t = Transform()
+        if not point:
+            point = self.bounds().point("C") # maybe should be getFrame()?
+        elif isinstance(point, str):
+            point = self.bounds().point(point)
+        t = t.translate(point.x, point.y)
+        t = t.rotate(math.radians(degrees))
+        t = t.translate(-point.x, -point.y)
+        return self.transform(t, transformFrame=False)
+    
+    def scale(self, scaleX, scaleY=None, point=None):
+        """Scale this shape by a percentage amount (1-scale)."""
+        t = Transform()
+        if point != False:
+            point = self.bounds().point("C") if point == None else point # maybe should be getFrame()?
+            t = t.translate(point.x, point.y)
+        t = t.scale(scaleX, scaleY or scaleX)
+        if point != False:
+            t = t.translate(-point.x, -point.y)
+        return self.transform(t)
+    
+    def scaleToRect(self, rect, preserveAspect=True, shrink_only=False):
+        """Scale this shape into a `Rect`."""
+        bounds = self.bounds()
+        h = rect.w / bounds.w
+        v = rect.h / bounds.h
+        if preserveAspect:
+            scale = h if h < v else v
+            if shrink_only and scale >= 1:
+                return self
+            return self.scale(scale)
+        else:
+            if shrink_only and (h >= 1 or v >= 1):
+                return self
+            return self.scale(h, v)
+    
+    def scaleToWidth(self, w, shrink_only=False):
+        """Scale this shape horizontally"""
+        b = self.bounds()
+        if shrink_only and b.w < w:
+            return self
+        else:
+            return self.scale(w / self.bounds().w, 1)
+    
+    def scaleToHeight(self, h, shrink_only=False):
+        """Scale this shape horizontally"""
+        b = self.bounds()
+        if shrink_only and b.h < h:
+            return self
+        return self.scale(1, h / self.bounds().h)
+    
+    def walk(self, callback:Callable[["DraftingPen", int, dict], None], depth=0, visible_only=False, parent=None):
+        if visible_only and not self._visible:
+            return
+        
+        if parent:
+            self._parent = parent
+        
+        is_dps = hasattr(self, "pens")
+        if is_dps:
+            callback(self, -1, dict(depth=depth))
+            for pen in self.pens:
+                pen.walk(callback, depth=depth+1, visible_only=visible_only, parent=self)
+            callback(self, 1, dict(depth=depth))
+        else:
+            callback(self, 0, dict(depth=depth))
