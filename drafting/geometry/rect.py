@@ -218,7 +218,7 @@ class Rect(Geometrical):
         return Rect(centered_square(self.rect()))
     
     def align(self, rect, x=Edge.CenterX, y=Edge.CenterY):
-        return self.offset(align(self, rect, x, y))
+        return self.offset(*align(self, rect, x, y))
     
     def ipos(self, pt, defaults=(0.5, 0.5), clamp=True):
         """
