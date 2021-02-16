@@ -1,3 +1,5 @@
+from typing import Callable, Optional
+
 from drafting.sh import sh
 from drafting.geometry import Geometrical, Rect
 from drafting.pens.draftingpen import DraftingPen
@@ -5,10 +7,17 @@ from drafting.pens.draftingpen import DraftingPen
 
 class DraftingPens(DraftingPen):
     def __init__(self, pens=None):
+        self.pens = []
         super().__init__()
+
         self.single_pen_class = DraftingPen
         self._in_progress_pen = None
-        self.pens = []
+
+        self.subs = {
+            "□": "ctx.bounds()",
+            "■": "_dps.bounds()"
+        }
+
         if pens:
             for p in pens:
                 self.append(p)
@@ -192,9 +201,37 @@ class DraftingPens(DraftingPen):
         self.pens = nonblank_pens
         return self
     
+    def remove_overlap(self):
+        for p in self.pens:
+            p.removeOverlap()
+        return self
+    
+    removeOverlap = remove_overlap
+    
     def transform(self, transform, transformFrame=True):
         for p in self.pens:
             p.transform(transform)
         if transformFrame and self._frame:
             self._frame = self._frame.transform(transform)
+        return self
+    
+    def attr(self, key="default", field=None, **kwargs):
+        if field: # getting, not setting, kind of weird to return the first value?
+            if len(self.pens) > 0:
+                return self.pens[0].attr(key=key, field=field)
+            else:
+                return None
+        for p in self.pens:
+            p.attr(key, **kwargs)
+        return self
+    
+    def lattr(self, tag, fn: Callable[[DraftingPen], Optional[DraftingPen]]):
+        for p in self.pens:
+            p.lattr(tag, fn)
+        return self
+    
+    def round_to(self, rounding):
+        """Round all values for all pens in this set to nearest multiple of rounding value (rather than places, as in `round`)"""
+        for p in self.pens:
+            p.round_to(rounding)
         return self

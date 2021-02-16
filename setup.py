@@ -27,7 +27,8 @@ setuptools.setup(
     install_requires=[
         "fontPens",
         "fonttools",
-        "more-itertools"
+        "more-itertools",
+        "skia-pathops",
     ],
     classifiers=[
         "Programming Language :: Python :: 3",

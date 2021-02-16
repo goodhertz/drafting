@@ -1,6 +1,8 @@
 import math
 from time import sleep
-from typing import Callable
+from typing import Callable, Optional
+from collections import OrderedDict
+from copy import deepcopy
 
 from fontTools.misc.transform import Transform
 from fontTools.pens.boundsPen import BoundsPen
@@ -9,9 +11,11 @@ from fontTools.pens.transformPen import TransformPen
 from fontTools.pens.reverseContourPen import ReverseContourPen
 
 from fontPens.flattenPen import FlattenPen
-
 from drafting.geometry import Atom, Point, Line, Rect, align
+from drafting.color import normalize_color
 from drafting.sh import sh, SHContext
+
+from drafting.pens.misc import BooleanOp, calculate_pathop, ExplodingPen, SmoothPointsPen
 
 
 class DraftingPen(RecordingPen, SHContext):
@@ -21,10 +25,18 @@ class DraftingPen(RecordingPen, SHContext):
         SHContext.__init__(self)
         RecordingPen.__init__(self)
 
+        from drafting.pens.draftingpens import DraftingPens
+
+        self.single_pen_class = DraftingPen
+        self.multi_pen_class = DraftingPens
+
         self._tag = None
         self._frame = None
         self._visible = True
         self._parent = None
+
+        self._current_attr_tag = "default"
+        self.clearAttrs()
 
         self.defs = None
 
@@ -348,7 +360,9 @@ class DraftingPen(RecordingPen, SHContext):
     
     def cast(self, _class, *args):
         """Quickly cast to a (different) subclass."""
-        return _class(self, *args)
+        res = _class(self, *args)
+        res.attrs = deepcopy(self.attrs)
+        return res
     
     def pen(self):
         """Return a single-pen representation of this pen(set)."""
@@ -403,6 +417,9 @@ class DraftingPen(RecordingPen, SHContext):
         """Translate this shape by `x` and `y` (pixel values)."""
         if y is None:
             y = x
+        img = self.img()
+        if img:
+            img["rect"] = img["rect"].offset(x, y)
         return self.transform(Transform(1, 0, 0, 1, x, y), transformFrame=transformFrame)
     
     def skew(self, x=0, y=0, point=None):
@@ -467,6 +484,8 @@ class DraftingPen(RecordingPen, SHContext):
             return self
         return self.scale(1, h / self.bounds().h)
     
+    # PEN-BASED MODIFICATIONS
+    
     def flatten(self, length=10):
         """
         Runs a fontTools `FlattenPen` on this pen
@@ -477,6 +496,35 @@ class DraftingPen(RecordingPen, SHContext):
         fp = FlattenPen(dp, approximateSegmentLength=length, segmentLines=True)
         self.replay(fp)
         self.value = dp.value
+        return self
+    
+    def smooth(self, length=100):
+        rp = RecordingPen()
+        fp = SmoothPointsPen(rp)
+        self.replay(fp)
+        self.value = rp.value
+        return self
+    
+    def explode(self):
+        """Read each contour into its own DATPen; returns a DATPens"""
+        dp = RecordingPen()
+        ep = ExplodingPen(dp)
+        self.replay(ep)
+        dps = self.multi_pen_class()
+        for p in ep.pens:
+            dp = type(self)()
+            dp.value = p
+            dp.attrs = deepcopy(self.attrs)
+            dps.append(dp)
+        return dps
+    
+    def repeat(self, times=1):
+        copy = self.copy()
+        copy_0_move, copy_0_data = copy.value[0]
+        copy.value[0] = ("lineTo", copy_0_data)
+        self.value = self.value[:-1] + copy.value
+        if times > 1:
+            self.repeat(times-1)
         return self
     
     # Iterating
@@ -645,3 +693,166 @@ class DraftingPen(RecordingPen, SHContext):
         else:
             if_false(self)
         return self
+
+    # BOOLEAN OPERATIONS
+
+    def _pathop(self, otherPen=None, operation=BooleanOp.XOR):
+        self.value = calculate_pathop(self, otherPen, operation)
+        return self
+    
+    def difference(self, otherPen):
+        """Calculate and return the difference of this shape and another."""
+        return self._pathop(otherPen=otherPen, operation=BooleanOp.Difference)
+    
+    def union(self, otherPen):
+        """Calculate and return the union of this shape and another."""
+        return self._pathop(otherPen=otherPen, operation=BooleanOp.Union)
+    
+    def xor(self, otherPen):
+        """Calculate and return the XOR of this shape and another."""
+        return self._pathop(otherPen=otherPen, operation=BooleanOp.XOR)
+    
+    def reverseDifference(self, otherPen):
+        """Calculate and return the reverseDifference of this shape and another."""
+        return self._pathop(otherPen=otherPen, operation=BooleanOp.ReverseDifference)
+    
+    def intersection(self, otherPen):
+        """Calculate and return the intersection of this shape and another."""
+        return self._pathop(otherPen=otherPen, operation=BooleanOp.Intersection)
+    
+    def removeOverlap(self):
+        """Remove overlaps within this shape and return itself."""
+        return self._pathop(otherPen=None, operation=BooleanOp.Simplify)
+    
+    # ATTRIBUTES
+
+    def clearAttrs(self):
+        """Remove all styling."""
+        self.attrs = OrderedDict()
+        self.attr("default", fill=(1, 0, 0.5))
+        return self
+    
+    def allStyledAttrs(self, style=None):
+        if style and style in self.attrs:
+            attrs = self.attrs[style]
+        else:
+            attrs = self.attrs["default"]
+        return attrs
+
+    def attr(self, tag=None, field=None, **kwargs):
+        """Set a style attribute on the pen."""
+        if not tag:
+            if hasattr(self, "_current_attr_tag"): # TODO temporary for pickled pens
+                tag = self._current_attr_tag
+            else:
+                tag = "default"
+
+        if field: # getting, not setting
+            return self.attrs.get(tag).get(field)
+        
+        attrs = dict(shadow=None)
+        if tag and self.attrs.get(tag):
+            attrs = self.attrs[tag]
+        else:
+            self.attrs[tag] = attrs
+        for k, v in kwargs.items():
+            if v:
+                if k == "fill":
+                    attrs[k] = normalize_color(v)
+                elif k == "stroke":
+                    existing = attrs.get("stroke", {})
+                    if not isinstance(v, dict):
+                        attrs[k] = dict(color=normalize_color(v), weight=existing.get("weight", 1))
+                    else:
+                        attrs[k] = dict(weight=v.get("weight", existing.get("weight", 1)), color=normalize_color(v.get("color", 0)))
+                elif k == "strokeWidth":
+                    if "stroke" in attrs:
+                        attrs["stroke"]["weight"] = v
+                        #if attrs["stroke"]["color"].a == 0:
+                        #    attrs["stroke"]["color"] = normalize_color((1, 0, 0.5))
+                    else:
+                        attrs["stroke"] = dict(color=normalize_color((1, 0, 0.5)), weight=v)
+                elif k == "shadow":
+                    if "color" in v:
+                        v["color"] = normalize_color(v["color"])
+                    attrs[k] = v
+                else:
+                    attrs[k] = v
+        return self
+    
+    def lattr(self, tag, fn: Callable[["DraftingPen"], Optional["DraftingPen"]]):
+        was_tag = self._current_attr_tag
+        self._current_attr_tag = tag
+        fn(self)
+        self._current_attr_tag = was_tag
+        return self
+    
+    def v(self, v):
+        self.visible(bool(v))
+        return self
+    
+    def a(self, v):
+        self._alpha = v
+        return self
+
+    def f(self, *value):
+        """Get/set a (f)ill"""
+        if value:
+            return self.attr(fill=value)
+        else:
+            return self.attr(field="fill")
+    
+    fill = f
+    
+    def s(self, *value):
+        """Get/set a (s)troke"""
+        if value:
+            return self.attr(stroke=value)
+        else:
+            return self.attr(field="stroke")
+    
+    stroke = s
+    
+    def sw(self, value):
+        """Get/set a (s)troke (w)idth"""
+        if value:
+            return self.attr(strokeWidth=value)
+        else:
+            return self.attr(field="strokeWidth")
+    
+    strokeWidth = sw
+
+    def img(self, src=None, rect=Rect(0, 0, 500, 500), pattern=True, opacity=1.0):
+        """Get/set an image fill"""
+        if src:
+            return self.attr(image=dict(src=src, rect=rect, pattern=pattern, opacity=opacity))
+        else:
+            return self.attr(field="image")
+    
+    def img_opacity(self, opacity, key="default"):
+        img = self.attr(key, "image")
+        if not img:
+            raise Exception("No image found")
+        self.attrs[key]["image"]["opacity"] = opacity
+        return self
+    
+    image = img
+
+    def shadow(self, radius=10, color=(0, 0.3), clip=None):
+        return self.attr(shadow=dict(color=normalize_color(color), radius=radius, clip=clip))
+    
+    def all_pens(self):
+        pens = []
+        if hasattr(self, "pens"):
+            pens = self.collapse().pens
+        if isinstance(self, self.single_pen_class):
+            pens = [self]
+        
+        for pen in pens:
+            if pen:
+                if hasattr(pen, "pens"):
+                    for _p in pen.collapse().pens:
+                        if _p:
+                            yield _p
+                else:
+                    yield pen
