@@ -140,7 +140,20 @@ class DraftingPen(RecordingPen, SHContext):
     def __invert__(self):
         return self.reverse()
     
-    def sh(self, s, fn=None, tag=None):
+    def sh(self, s):
+        res = sh(s, self)
+        if res[0] == "∫":
+            res = [self.single_pen_class().gs(res[1:])]
+        return res
+    
+    def gss(self, s):
+        dps = self.multi_pen_class()
+        sh(s, ctx=self, dps=dps)
+        for p in dps.pens:
+            self.record(p)
+        return self
+    
+    def gs(self, s, fn=None, tag=None):
         if isinstance(s, str):
             e = sh(s, self)
         else:

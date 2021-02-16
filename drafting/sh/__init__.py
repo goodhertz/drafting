@@ -197,8 +197,11 @@ def shgroup(s):
     
     return shphrase(s)
 
-def sh(s, ctx:SHContext, dps=None):
+def sh(s, ctx:SHContext=None, dps=None):
     from drafting.pens.draftingpen import DraftingPen
+
+    if ctx is None:
+        ctx = SHContext()
 
     evaled = []
     last_locals = {**ctx.locals}

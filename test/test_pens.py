@@ -9,7 +9,7 @@ class TestDraftingPens(unittest.TestCase):
         dps = DraftingPens()
         dp = (DraftingPen()
             .define(r=r)
-            .sh("$r↖ $r↗ ↘|65|$r↙ ɜ"))
+            .gs("$r↖ $r↗ ↘|65|$r↙ ɜ"))
         self.assertEqual(len(dp.value), 4)
         self.assertEqual(dp.value[-2][-1][0], Point(100, 35))
         self.assertEqual(dp.value[-1][0], "endPath")
@@ -18,11 +18,25 @@ class TestDraftingPens(unittest.TestCase):
         self.assertEqual(len(dps.tree().splitlines()), 3)
         self.assertEqual(dps.tree().splitlines()[-1],
             " | | DraftingPen<4mvs:end/>")
+    
+    def test_gss(self):
+        """
+        A rect passed to gs and gss should create the same value on the pen
+        """
+        dp1 = (DraftingPen()
+            .define(r=Rect(100, 100))
+            .gss("$r"))
+        
+        dp2 = (DraftingPen()
+            .define(r=Rect(100, 100))
+            .gs("$r"))
+        
+        self.assertEqual(dp1.value, dp2.value)
         
     def test_reverse(self):
         dp = (DraftingPen()
             .define(r=Rect(100, 100))
-            .sh("$r↖ $r↗ $r↘ ɜ"))
+            .gs("$r↖ $r↗ $r↘ ɜ"))
         p1 = dp.value[0][-1]
         p2 = dp.reverse().value[-2][-1]
         self.assertEqual(p1, p2)

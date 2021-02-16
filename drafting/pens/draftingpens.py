@@ -111,6 +111,15 @@ class DraftingPens(DraftingPen):
         """Calculated bounds of a DATPens"""
         return self.ambit(th=1, tv=1)
     
+    def gs(self, s, fn=None, tag=None):
+        return self.append(
+            self.single_pen_class().gs(sh(s, ctx=self, dps=type(self)()), tag=tag, fn=fn))
+    
+    def gss(self, s):
+        dps = type(self)()
+        xs = sh(s, ctx=self, dps=dps)
+        return self.extend(dps.pens)
+    
     # RecordingPen contract
 
     def moveTo(self, p0):
@@ -146,12 +155,6 @@ class DraftingPens(DraftingPen):
         self.pen().replay(pen)
     
     # Drawing
-    
-    def sh(self, s):
-        res = sh(s, self)
-        if res[0] == "∫":
-            res = [self.single_pen_class().sh(res[1:])]
-        return res
     
     def pen(self):
         """A flat representation of this set as a single pen"""
