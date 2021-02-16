@@ -19,12 +19,16 @@ setuptools.setup(
         "drafting",
         "drafting.sh",
         "drafting.grid",
+        "drafting.pens",
         "drafting.color",
         "drafting.geometry",
         "drafting.interpolation"
     ],
     install_requires=[
-        "more-itertools"
+        "fontPens",
+        "fonttools",
+        "more-itertools",
+        "skia-pathops",
     ],
     classifiers=[
         "Programming Language :: Python :: 3",

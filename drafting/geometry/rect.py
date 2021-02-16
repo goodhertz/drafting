@@ -36,6 +36,32 @@ for key, (w, h) in list(COMMON_PAPER_SIZES.items()):
     COMMON_PAPER_SIZES["%s-landscape" % key] = (h, w)
 
 
+def align(b, rect, x=Edge.CenterX, y=Edge.CenterY):
+    x = txt_to_edge(x)
+    y = txt_to_edge(y)
+    
+    xoff = 0
+    if x != None:
+        if x == Edge.CenterX:
+            xoff = -b.x + rect.x + rect.w/2 - b.w/2
+        elif x == Edge.MinX:
+            xoff = -(b.x-rect.x)
+        elif x == Edge.MaxX:
+            xoff = -b.x + rect.x + rect.w - b.w
+    
+    yoff = 0
+    if y != None:
+        if y == Edge.CenterY:
+            yoff = -b.y + rect.y + rect.h/2 - b.h/2
+        elif y == Edge.MaxY:
+            yoff = (rect.y + rect.h) - (b.h + b.y)
+        elif y == Edge.MinY:
+            yoff = -(b.y-rect.y)
+    
+    #diff = rect.w - b.w
+    return (xoff, yoff)
+
+
 class Rect(Geometrical):
     """
     Representation of a rectangle as (x, y, w, h), indexable
@@ -192,30 +218,7 @@ class Rect(Geometrical):
         return Rect(centered_square(self.rect()))
     
     def align(self, rect, x=Edge.CenterX, y=Edge.CenterY):
-        x = txt_to_edge(x)
-        y = txt_to_edge(y)
-        b = self
-        
-        xoff = 0
-        if x != None:
-            if x == Edge.CenterX:
-                xoff = -b.x + rect.x + rect.w/2 - b.w/2
-            elif x == Edge.MinX:
-                xoff = -(b.x-rect.x)
-            elif x == Edge.MaxX:
-                xoff = -b.x + rect.x + rect.w - b.w
-        
-        yoff = 0
-        if y != None:
-            if y == Edge.CenterY:
-                yoff = -b.y + rect.y + rect.h/2 - b.h/2
-            elif y == Edge.MaxY:
-                yoff = (rect.y + rect.h) - (b.h + b.y)
-            elif y == Edge.MinY:
-                yoff = -(b.y-rect.y)
-        
-        diff = rect.w - b.w
-        return self.offset(xoff, yoff)
+        return self.offset(*align(self, rect, x, y))
     
     def ipos(self, pt, defaults=(0.5, 0.5), clamp=True):
         """
@@ -720,6 +723,6 @@ class Rect(Geometrical):
         ws = self.parse_line(r.h, _xs)
         rs = []
         for w in ws:
-            _r, r = r.divide(w, "mny")
+            _r, r = r.divide(w, "mxy")
             rs.append(_r)
         return rs

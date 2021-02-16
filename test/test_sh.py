@@ -13,10 +13,10 @@ class TestSh(unittest.TestCase):
     def test_sh_context(self):
         ctx = SHContext()
         ctx.locals["cool"] = "io"
-        ctx.subs["□"] = lambda c: "ctx.guides.bx" if hasattr(c, "guides") and hasattr(c.guides, "bx") else "ctx.bounds()"
+        ctx.subs["□"] = lambda c: "ctx.constants.bx" if hasattr(c, "guides") and hasattr(c.guides, "bx") else "ctx.bounds()"
         ctx.subs["■"] = "_dps.bounds()"
-        
-        ctx.context_record("$", "constants",
+
+        ctx.context_record("$", "constants", None,
             hello="'world'",
             yoyo=lambda _: "ma",
             aƒbƒc="cool $hello □")
@@ -33,12 +33,17 @@ class TestSh(unittest.TestCase):
         self.assertEqual(list(g.keyed.keys()), ["x", "y", "z"])
         
         ctx = SHContext()
-        ctx.context_record("&", "guides", g)
+        ctx.context_record("&", "guides", None, g)
         self.assertEqual(ctx.guides.x.w, 10)
         self.assertEqual(g.keyed["x"].h, 100)
         self.assertEqual(ctx.sh("&y")[0].w, 80)
         self.assertEqual(ctx.sh("&y•")[0], Point(50, 50))
         self.assertEqual(ctx.sh("&z⊢")[0], Line(Point(90, 0), Point(90, 100)))
+    
+    def test_sh_string_literal(self):
+        ctx = SHContext()
+        ctx.context_record("$", "defs", None,
+            hello="'world'")
 
 if __name__ == "__main__":
     unittest.main()
