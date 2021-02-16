@@ -1,4 +1,5 @@
 import math
+from time import sleep
 from typing import Callable
 
 from fontTools.misc.transform import Transform
@@ -6,6 +7,8 @@ from fontTools.pens.boundsPen import BoundsPen
 from fontTools.pens.recordingPen import RecordingPen
 from fontTools.pens.transformPen import TransformPen
 from fontTools.pens.reverseContourPen import ReverseContourPen
+
+from fontPens.flattenPen import FlattenPen
 
 from drafting.geometry import Atom, Point, Line, Rect, align
 from drafting.sh import sh, SHContext
@@ -105,17 +108,6 @@ class DraftingPen(RecordingPen, SHContext):
         else:
             return self.bounds()
     
-    def define(self, *args, **kwargs):
-        return self.context_record("$", "defs", None, *args, **kwargs)
-    
-    def print(self, *args):
-        for a in args:
-            if callable(a):
-                print(a(self))
-            else:
-                print(a)
-        return self
-    
     def unended(self):
         if len(self.value) == 0:
             return True
@@ -200,6 +192,36 @@ class DraftingPen(RecordingPen, SHContext):
         super().replay(pen)
         return self
     
+    def record(self, pen):
+        """Play a pen into this pen, meaning that pen will be added to this one’s value."""
+        if hasattr(pen, "pens"):
+            for p in pen:
+                self.record(p)
+        if pen:
+            pen.replay(self)
+        return self
+    
+    def glyph(self, glyph):
+        """Play a glyph (like from `defcon`) into this pen."""
+        glyph.draw(self)
+        return self
+    
+    def to_glyph(self, name=None, width=None):
+        """
+        Create a glyph (like from `defcon`) using this pen’s value.
+        *Warning*: if path is unended, closedPath will be called
+        """
+        from defcon import Glyph
+        if self.unended():
+            self.closePath()
+        bounds = self.bounds()
+        glyph = Glyph()
+        glyph.name = name
+        glyph.width = width or bounds.w
+        sp = glyph.getPen()
+        self.replay(sp)
+        return glyph
+    
     def rect(self, rect):
         """Rectangle primitive — `moveTo/lineTo/lineTo/lineTo/closePath`"""
         self.moveTo(rect.point("SW").xy())
@@ -256,6 +278,14 @@ class DraftingPen(RecordingPen, SHContext):
             self.lineTo(p)
         if endPath:
             self.endPath()
+        return self
+    
+    def hull(self, points):
+        """Same as `DraftingPen.line` but calls closePath instead of endPath`"""
+        self.moveTo(points[0])
+        for pt in points[1:]:
+            self.lineTo(pt)
+        self.closePath()
         return self
     
     def boxCurveTo(self, pt, point, factor, mods={}):
@@ -315,6 +345,17 @@ class DraftingPen(RecordingPen, SHContext):
         else:
             dp.defs = self.defs
         return dp
+    
+    def cast(self, _class, *args):
+        """Quickly cast to a (different) subclass."""
+        return _class(self, *args)
+    
+    def pen(self):
+        """Return a single-pen representation of this pen(set)."""
+        return self
+    
+    def to_pen(self):
+        return self.pen()
     
     def round(self):
         """Round the values of this pen to integer values."""
@@ -426,6 +467,20 @@ class DraftingPen(RecordingPen, SHContext):
             return self
         return self.scale(1, h / self.bounds().h)
     
+    def flatten(self, length=10):
+        """
+        Runs a fontTools `FlattenPen` on this pen
+        """
+        if length == 0:
+            return self
+        dp = type(self)()
+        fp = FlattenPen(dp, approximateSegmentLength=length, segmentLines=True)
+        self.replay(fp)
+        self.value = dp.value
+        return self
+    
+    # Iterating
+    
     def walk(self, callback:Callable[["DraftingPen", int, dict], None], depth=0, visible_only=False, parent=None):
         if visible_only and not self._visible:
             return
@@ -445,6 +500,24 @@ class DraftingPen(RecordingPen, SHContext):
     def remove_blanks(self):
         """If this is blank, `return True` (for recursive calls from DATPens)."""
         return len(self.value) == 0
+    
+    def interpolate(self, value, other):
+        vl = []
+        for idx, (mv, pts) in enumerate(self.value):
+            ipts = []
+            for jdx, p in enumerate(pts):
+                pta = Point(p)
+                ptb = Point(other.value[idx][-1][jdx])
+                ipts.append(pta.interp(value, ptb))
+            vl.append((mv, ipts))
+        return type(self)().vl(vl)
+    
+    def Interpolate(instances, value):
+        spread = len(instances)-1
+        start = math.floor(value*spread)
+        end = math.ceil(value*spread)
+        v = value*spread-start
+        return instances[start].interpolate(v, instances[end])
     
     # GEOMETRICAL
 
@@ -528,3 +601,47 @@ class DraftingPen(RecordingPen, SHContext):
     def ecy(self):
         n, s, e, w = self.nsew()
         return n.interp(0.5, s.reverse())
+
+    # COMPUTATIONAL OBJECT
+    
+    def define(self, *args, **kwargs):
+        return self.context_record("$", "defs", None, *args, **kwargs)
+    
+    def print(self, *args):
+        for a in args:
+            if callable(a):
+                print(a(self))
+            else:
+                print(a)
+        return self
+
+    def noop(self, *args, **kwargs):
+        """Does nothing"""
+        return self
+    
+    def sleep(self, time):
+        """Sleep call within the chain (if you want to measure something)"""
+        sleep(time)
+        return self
+
+    def chain(self, fn:Callable[["DraftingPen"], None], *args):
+        """
+        For simple take-one callback functions in a chain
+        """
+        if fn:
+            fn(self, *args)
+        return self
+    
+    def replace(self, fn:Callable[["DraftingPen"], None], *args):
+        """
+        For simple take-one callback functions in a chain, to return what the function returns (not the element itself)
+        """
+        return fn(self, *args)
+    
+    def cond(self, condition, if_true: Callable[["DraftingPen"], None], if_false=Callable[["DraftingPen"], None]):
+        # TODO make if_false optional
+        if condition:
+            if_true(self)
+        else:
+            if_false(self)
+        return self
