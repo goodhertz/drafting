@@ -18,7 +18,7 @@ class SHLookup():
         else:
             return f"SHLookup(count:{len(self.values)})"
 
-    def record(self, ctx, key, values):
+    def record(self, ctx, key, values, cb):
         if isinstance(values, str):
             values = ctx.sh(values)
         else:
@@ -43,11 +43,18 @@ class SHLookup():
                 hide = True
             if callable(value):
                 value = value(ctx)
+            
+            if cb:
+                res = cb(k, value)
+                if res is False:
+                    hide = True
             if not hide and not hide_all:
                 self.values[k] = value
             setattr(self, k, value)
+            #if cb:
+            #    cb(k, value)
 
-    def record_many(self, ctx, *args, **kwargs):
+    def record_many(self, ctx, cb, *args, **kwargs):
         from drafting.grid import Grid
         
         if len(args) > 0 and isinstance(args[0], Grid):
@@ -58,7 +65,7 @@ class SHLookup():
             kwargs[str(random())] = arg
         
         for k, v in kwargs.items():
-            self.record(ctx, k, v)
+            self.record(ctx, k, v, cb)
         
         return self
 
@@ -78,10 +85,10 @@ class SHContext():
         setattr(self, lookup, lk)
         return lk
     
-    def context_record(self, symbol, lookup, *args, **kwargs):
+    def context_record(self, symbol, lookup, cb, *args, **kwargs):
         if not hasattr(self, lookup) or getattr(self, lookup) is None:
             self.registered_lookup(symbol, lookup)
-        self.lookups[lookup].record_many(self, *args, **kwargs)
+        self.lookups[lookup].record_many(self, cb, *args, **kwargs)
         return self
     
     def sh(self, s):

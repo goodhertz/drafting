@@ -269,7 +269,9 @@ def sh(s, ctx:SHContext, dps=None):
             phrase = "'∫'"
 
         more = []
-        if "|" in phrase:
+        if "ø" in phrase:
+            phrase = phrase.replace("ø", "")
+        elif "|" in phrase:
             tuple = phrase.split("|")
             for i, t in enumerate(tuple):
                 if isinstance(t, str):

@@ -106,7 +106,7 @@ class DraftingPen(RecordingPen, SHContext):
             return self.bounds()
     
     def define(self, *args, **kwargs):
-        return self.context_record("$", "defs", *args, **kwargs)
+        return self.context_record("$", "defs", None, *args, **kwargs)
     
     def print(self, *args):
         for a in args:
@@ -311,7 +311,7 @@ class DraftingPen(RecordingPen, SHContext):
         dp = type(self)(self)
         if with_data:
             dp._frame = self._frame
-            dp.defs = self.defs # necessary to copy this?
+            dp.defs = self.defs # necessary to copy this and not pass by ref?
         else:
             dp.defs = self.defs
         return dp
@@ -441,3 +441,90 @@ class DraftingPen(RecordingPen, SHContext):
             callback(self, 1, dict(depth=depth))
         else:
             callback(self, 0, dict(depth=depth))
+    
+    def remove_blanks(self):
+        """If this is blank, `return True` (for recursive calls from DATPens)."""
+        return len(self.value) == 0
+    
+    # GEOMETRICAL
+
+    def nsew(self):
+        pts = [el[1][-1] for el in self.value if len(el[1]) > 0]
+        
+        lines = []
+        for i, p in enumerate(pts):
+            if i + 1 == len(pts):
+                lines.append(Line(p, pts[0]))
+            else:
+                lines.append(Line(p, pts[i+1]))
+        
+        mnx, mny, mxx, mxy = self.bounds().mnmnmxmx()
+        min_ang = min([l.ang for l in lines])
+        max_ang = max([l.ang for l in lines])
+        #for idx, l in enumerate(lines):
+        #    print(idx, ">", l.ang, min_ang, max_ang)
+        xs = [l for l in lines if math.isclose(l.ang,min_ang)]
+        ys = [l for l in lines if math.isclose(l.ang, max_ang)]
+
+        #print(len(xs), len(ys))
+        #print("--------------------")
+
+        n = [l for l in xs if l.start.y == mxy or l.end.y == mxy][0]
+        s = [l for l in xs if l.start.y == mny or l.end.y == mny][0]
+        e = [l for l in ys if l.start.x == mxx or l.end.x == mxx][0]
+        w = [l for l in ys if l.start.x == mnx or l.end.x == mnx][0]
+        return n, s, e, w
+
+    def point(self, pt):
+        n, s, e, w = self.nsew()
+        if pt == "NE":
+            return n.pe
+        elif pt == "NW":
+            return n.pw
+        elif pt == "SE":
+            return s.pe
+        elif pt == "SW":
+            return s.pw
+        elif pt == "N":
+            return n.mid
+        elif pt == "S":
+            return s.mid
+        elif pt == "E":
+            return e.mid
+        elif pt == "W":
+            return w.mid
+
+    @property
+    def pne(self): return self.point("NE")
+    @property
+    def pnw(self): return self.point("NW")
+    @property
+    def psw(self): return self.point("SW")
+    @property
+    def pse(self): return self.point("SE")
+    @property
+    def pn(self): return self.point("N")
+    @property
+    def ps(self): return self.point("S")
+    @property
+    def pe(self): return self.point("E")
+    @property
+    def pw(self): return self.point("W")
+    @property
+    def en(self): return self.nsew()[0]
+    @property
+    def es(self): return self.nsew()[1]
+    @property
+    def ee(self): return self.nsew()[2]
+    @property
+    def ew(self): return self.nsew()[3]
+    
+    @property
+    def ecx(self):
+        n, s, e, w = self.nsew()
+        return e.interp(0.5, w.reverse())
+    
+    @property
+    def ecy(self):
+        n, s, e, w = self.nsew()
+        return n.interp(0.5, s.reverse())

@@ -182,3 +182,12 @@ class DraftingPens(DraftingPen):
         for p in self.pens:
             dps.append(p.copy(with_data=with_data))
         return dps
+    
+    def remove_blanks(self):
+        """Remove blank pens"""
+        nonblank_pens = []
+        for pen in self.pens:
+            if not pen.remove_blanks():
+                nonblank_pens.append(pen)
+        self.pens = nonblank_pens
+        return self
