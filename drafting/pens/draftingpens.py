@@ -191,3 +191,10 @@ class DraftingPens(DraftingPen):
                 nonblank_pens.append(pen)
         self.pens = nonblank_pens
         return self
+    
+    def transform(self, transform, transformFrame=True):
+        for p in self.pens:
+            p.transform(transform)
+        if transformFrame and self._frame:
+            self._frame = self._frame.transform(transform)
+        return self

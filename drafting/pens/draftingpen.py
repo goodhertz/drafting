@@ -396,7 +396,7 @@ class DraftingPen(RecordingPen, SHContext):
     
     def align(self, rect, x="mdx", y="mdy", th=True, tv=False, transformFrame=True):
         r = self.ambit(th, tv)
-        self.translate(*align(r, rect, x, y))
+        self.translate(*align(r, rect, x, y), transformFrame=transformFrame)
         return self
     
     def translate(self, x, y=None, transformFrame=True):
