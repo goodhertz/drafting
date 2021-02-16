@@ -2,7 +2,8 @@
 
 import drawBot as db
 
-from drafting.color import Color, Gradient
+from drafting.geometry import Rect, Point
+from drafting.color import Color, Gradient, hsl, rgb
 from drafting.pens.draftingpens import DraftingPen, DraftingPens
 
 
@@ -78,5 +79,5 @@ class DrawBotPen(DraftingPen):
             self._draw()
         return self
 
-class DrawbotPens(DrawBotPen, DraftingPens):
+class DrawBotPens(DrawBotPen, DraftingPens):
     pass
