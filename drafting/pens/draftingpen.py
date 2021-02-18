@@ -419,6 +419,9 @@ class DraftingPen(RecordingPen, SHContext):
         self.value = op.value
         if transformFrame and self._frame:
             self._frame = self._frame.transform(transform)
+        img = self.img()
+        if img:
+            img["rect"] = img["rect"].transform(transform)
         return self
     
     def align(self, rect, x="mdx", y="mdy", th=True, tv=False, transformFrame=True):
@@ -430,9 +433,6 @@ class DraftingPen(RecordingPen, SHContext):
         """Translate this shape by `x` and `y` (pixel values)."""
         if y is None:
             y = x
-        img = self.img()
-        if img:
-            img["rect"] = img["rect"].offset(x, y)
         return self.transform(Transform(1, 0, 0, 1, x, y), transformFrame=transformFrame)
     
     def skew(self, x=0, y=0, point=None):

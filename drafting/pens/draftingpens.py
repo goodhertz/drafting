@@ -213,7 +213,7 @@ class DraftingPens(DraftingPen):
     
     def transform(self, transform, transformFrame=True):
         for p in self.pens:
-            p.transform(transform)
+            p.transform(transform, transformFrame=transformFrame)
         if transformFrame and self._frame:
             self._frame = self._frame.transform(transform)
         return self
