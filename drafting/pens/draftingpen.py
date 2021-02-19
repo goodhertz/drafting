@@ -11,7 +11,7 @@ from fontTools.pens.transformPen import TransformPen
 from fontTools.pens.reverseContourPen import ReverseContourPen
 
 from fontPens.flattenPen import FlattenPen
-from drafting.geometry import Atom, Point, Line, Rect, align
+from drafting.geometry import Atom, Point, Line, Edge, Rect, align
 from drafting.color import normalize_color
 from drafting.sh import sh, SHContext
 
@@ -429,6 +429,15 @@ class DraftingPen(RecordingPen, SHContext):
         self.translate(*align(r, rect, x, y), transformFrame=transformFrame)
         return self
     
+    def x_align_to_frame(self, x=Edge.CenterX, th=0):
+        if self._frame:
+            return self.align(self.ambit(th=th, tv=0), x=x, transformFrame=1, th=1)
+        else:
+            raise Exception("No Frame")
+
+    # deprecated camelcase
+    xAlignToFrame = x_align_to_frame
+    
     def translate(self, x, y=None, transformFrame=True):
         """Translate this shape by `x` and `y` (pixel values)."""
         if y is None:
@@ -559,6 +568,7 @@ class DraftingPen(RecordingPen, SHContext):
             callback(self, 0, dict(depth=depth))
     
     def remove_blanks(self):
+        print("REMOVE BLANKS PEN", self)
         """If this is blank, `return True` (for recursive calls from DATPens)."""
         return len(self.value) == 0
     

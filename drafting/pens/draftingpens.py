@@ -199,8 +199,15 @@ class DraftingPens(DraftingPen):
         """Remove blank pens"""
         nonblank_pens = []
         for pen in self.pens:
-            if not pen.remove_blanks():
+            if hasattr(pen, "pens"):
+                pen.remove_blanks()
                 nonblank_pens.append(pen)
+            elif len(pen.value) > 0:
+                nonblank_pens.append(pen)
+            #rb = pen.remove_blanks()
+            #print("RB RES", rb, bool(rb))
+            #if not rb:
+            #    nonblank_pens.append(pen)
         self.pens = nonblank_pens
         return self
     

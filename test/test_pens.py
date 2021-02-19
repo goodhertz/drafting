@@ -68,6 +68,15 @@ class TestDraftingPens(unittest.TestCase):
         self.assertEqual(moves[0][0], dps)
         self.assertEqual(moves[0][1], -1)
         self.assertEqual(moves[1][1], 0)
+    
+    def test_remove_blanks(self):
+        dps = (DraftingPens([
+            DraftingPen(Rect(50, 50)),
+            DraftingPen()
+        ]))
+        self.assertEqual(len(dps), 2)
+        dps.remove_blanks()
+        self.assertEqual(len(dps), 1)
 
 if __name__ == "__main__":
     unittest.main()
