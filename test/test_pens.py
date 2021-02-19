@@ -59,7 +59,8 @@ class TestDraftingPens(unittest.TestCase):
         dps = (DraftingPens([
                 DraftingPen(Rect(50, 50)),
                 DraftingPen(Rect(100, 100, 100, 100))])
-                .print(lambda x: x.tree()))
+                #.print(lambda x: x.tree())
+                )
         ram = dps.ambit()
         self.assertEqual(ram, Rect(0, 0, 200, 200))
 
