@@ -61,7 +61,8 @@ SH_BINARY_OPS_EDGEAWARE = {
 SH_JOINS = {
     "⨝": ["join"],
     "∩": ["intersection"],
-    "∮": lambda a, b: f"DraftingPen().moveTo({a}.start).lineTo({a}.end).lineTo({b}.end).lineTo({b}.start).closePath()"
+    "∮": lambda a, b: f"DraftingPen().moveTo({a}.start).lineTo({a}.end).lineTo({b}.end).lineTo({b}.start).closePath()",
+    "⫎": lambda a, b: f"Rect.FromPoints({a}, {b})"
 }
 
 SH_BACKREFS = {
