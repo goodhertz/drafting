@@ -279,7 +279,9 @@ def sh(s, ctx:SHContext=None, dps=None):
             tuple = phrase.split("|")
             for i, t in enumerate(tuple):
                 if isinstance(t, str):
-                    if len(t) > 1:
+                    if "ᛗ" in t:
+                        t = ",".join([f"'{c}'" for c in t])
+                    elif len(t) > 1:
                         if t[0] in SH_UNARY_TO_STRING:
                             tuple[i] = [SH_UNARY_TO_STRING[x] for x in t]
                             continue

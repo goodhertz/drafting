@@ -111,9 +111,9 @@ class DraftingPens(DraftingPen):
         """Calculated bounds of a DATPens"""
         return self.ambit(th=1, tv=1)
     
-    def gs(self, s, fn=None, tag=None):
+    def gs(self, s, fn=None, tag=None, writer=None):
         return self.append(
-            self.single_pen_class().gs(sh(s, ctx=self, dps=type(self)()), tag=tag, fn=fn))
+            self.single_pen_class().gs(sh(s, ctx=self, dps=type(self)()), tag=tag, fn=fn, writer=writer))
     
     def gss(self, s):
         dps = type(self)()

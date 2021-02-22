@@ -34,11 +34,13 @@ class DraftingPen(RecordingPen, SHContext):
         self._frame = None
         self._visible = True
         self._parent = None
+        self._last = None
 
         self._current_attr_tag = "default"
         self.clearAttrs()
 
         self.defs = None
+        self.macros = {}
 
         for _, arg in enumerate(args):
             if isinstance(arg, str):
@@ -153,7 +155,7 @@ class DraftingPen(RecordingPen, SHContext):
             self.record(p)
         return self
     
-    def gs(self, s, fn=None, tag=None):
+    def gs(self, s, fn=None, tag=None, writer=None):
         if isinstance(s, str):
             e = sh(s, self)
         else:
@@ -170,6 +172,12 @@ class DraftingPen(RecordingPen, SHContext):
                 getattr(self, _e)()
             elif len(_e) == 3:
                 self.boxCurveTo(_e[-1], _e[0], _e[1])
+            else:
+                if _e[0][0] == "ᛗ":
+                    macro = _e[0][-1]
+                    #print("MACRO", macro, writer)
+                    if macro == "F":
+                        writer(self, macro, _e[1:])
 
         one_move(e[0], move="moveTo")
 
@@ -187,18 +195,22 @@ class DraftingPen(RecordingPen, SHContext):
 
     def moveTo(self, p0):
         super().moveTo(p0)
+        self._last = p0
         return self
 
     def lineTo(self, p1):
         super().lineTo(p1)
+        self._last = p1
         return self
 
     def qCurveTo(self, *points):
         super().qCurveTo(*points)
+        self._last = points[-1]
         return self
 
     def curveTo(self, *points):
         super().curveTo(*points)
+        self._last = points[-1]
         return self
 
     def closePath(self):
@@ -677,6 +689,11 @@ class DraftingPen(RecordingPen, SHContext):
     
     def define(self, *args, **kwargs):
         return self.context_record("$", "defs", None, *args, **kwargs)
+    
+    def macro(self, **kwargs):
+        for k, v in kwargs.items():
+            self.macros[k] = v
+        return self
     
     def print(self, *args):
         for a in args:
