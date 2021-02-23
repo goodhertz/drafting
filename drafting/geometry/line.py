@@ -1,7 +1,8 @@
 import math
+from fontTools.misc.transform import Transform
 from drafting.geometry.geometrical import Geometrical
 from drafting.geometry.point import Point
-from drafting.geometry.primitives import line_intersection, calc_angle
+from drafting.geometry.primitives import line_intersection, calc_angle, polar_coord
 from drafting.interpolation import norm
 
 
@@ -100,6 +101,31 @@ class Line(Geometrical):
     @property
     def ang(self):
         return self.angle()%math.pi
+    
+    def transform(self, t):
+        pts = [self.start, self.end]
+        x1, x2 = [t.transformPoint(pt) for pt in pts]
+        return Line(x1, x2)
+
+    def rotate(self, degrees, point=None):
+        if Transform:
+            t = Transform()
+            if not point:
+                point = self.mid
+            t = t.translate(point.x, point.y)
+            t = t.rotate(math.radians(degrees))
+            t = t.translate(-point.x, -point.y)
+            return self.transform(t)
+        else:
+            raise Exception("fontTools not installed")
+    
+    def bow(self, amt, t=0.5, angle=90):
+        rotated = self.rotate(angle, point=self.t(t))
+        return rotated.tpx(self.length()*0.5+amt)
+    
+    def project(self, pt, dist, angle=90):
+        dx, dy = polar_coord((0, 0), self.ang+math.radians(angle), dist)
+        return self.t(pt).offset(dx, dy)
     
     def extr(self, amt):
         p1, p2 = self

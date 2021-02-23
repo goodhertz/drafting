@@ -49,6 +49,7 @@ SH_BINARY_OPS = {
     "R": "rows",
     "@": "__getitem__",
     "↕": "extr",
+    "P": "project"
 }
 
 SH_BINARY_OPS_EDGEAWARE = {
@@ -220,6 +221,9 @@ def sh(s, ctx:SHContext=None, dps=None):
         py = (shgroup(phrase))
         if not py:
             return None
+
+        for k, v in SH_PATH_OPS.items():
+            py = py.replace(k, '"' + v + '"')
         
         for k, v in ctx.lookups.items():
             py = py.replace(v.symbol, f"ctx.{k}.")
@@ -227,7 +231,7 @@ def sh(s, ctx:SHContext=None, dps=None):
         for k, v in ctx.subs.items():
             py = py.replace(k, v(ctx) if callable(v) else v)
 
-        #print("EVAL:", py)
+        print("EVAL:", py)
 
         try:
             res = eval(py, dict(
@@ -246,8 +250,8 @@ def sh(s, ctx:SHContext=None, dps=None):
 
     s = re.sub(r"([\$\&]{1}[a-z]+)([↖↑↗→↘↓↙←•⍺⍵µ]{2,})", expand_multisuffix, s)
 
-    for k, v in SH_PATH_OPS.items():
-        s = s.replace(k, '"' + v + '"')
+    # for k, v in SH_PATH_OPS.items():
+    #     s = s.replace(k, '"' + v + '"')
 
     join_to_path = False
     splits = ["ƒ"]
@@ -257,7 +261,7 @@ def sh(s, ctx:SHContext=None, dps=None):
 
     for phrase in split_before(s, lambda x: x in splits):
         phrase = "".join(phrase).strip()
-        #print("PHRASE", phrase)
+        print("PHRASE", phrase)
         last = None
         if not phrase:
             continue
