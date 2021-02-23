@@ -1,4 +1,6 @@
-import math
+import enum
+import math, re
+
 from time import sleep
 from typing import Callable, Optional
 from collections import OrderedDict
@@ -13,7 +15,7 @@ from fontTools.pens.reverseContourPen import ReverseContourPen
 from fontPens.flattenPen import FlattenPen
 from drafting.geometry import Atom, Point, Line, Edge, Rect, align
 from drafting.color import normalize_color
-from drafting.sh import sh, SHContext
+from drafting.sh import SH_UNARY_SUFFIX_PROPS, sh, SHContext
 
 from drafting.pens.misc import BooleanOp, calculate_pathop, ExplodingPen, SmoothPointsPen
 
@@ -155,8 +157,31 @@ class DraftingPen(RecordingPen, SHContext):
             self.record(p)
         return self
     
+    def run_macros(self, s):
+        macros = self.macros
+        for k, v in macros.items():
+            def repl(m):
+                vo = v
+                if isinstance(v, str):
+                    repls = m.group(1).split(",")
+                    for idx, r in enumerate(repls):
+                        vo = vo.replace(f"${idx+1}", r)
+                    return vo
+                elif callable(v):
+                    #print("GROUPS", m.groups())
+                    vo = v(*m.group(1).split(","))
+                    #print("RES", vo)
+                    return vo
+                else:
+                    raise TypeError("macro must be string or callable")
+
+            mre = re.compile(fr"@{k}\:([^\s]+)")
+            s = mre.sub(repl, s)
+        return s
+    
     def gs(self, s, fn=None, tag=None, writer=None):
         if isinstance(s, str):
+            s = self.run_macros(s)
             e = sh(s, self)
         else:
             e = s
@@ -617,13 +642,18 @@ class DraftingPen(RecordingPen, SHContext):
         mnx, mny, mxx, mxy = self.bounds().mnmnmxmx()
         min_ang = min([l.ang for l in lines])
         max_ang = max([l.ang for l in lines])
-        #for idx, l in enumerate(lines):
-        #    print(idx, ">", l.ang, min_ang, max_ang)
-        xs = [l for l in lines if math.isclose(l.ang,min_ang)]
+        for idx, l in enumerate(lines):
+            print(idx, ">", l.ang, min_ang, max_ang)
+        xs = [l for l in lines if math.isclose(l.ang, min_ang)]
         ys = [l for l in lines if math.isclose(l.ang, max_ang)]
 
+        if len(ys) == 2 and len(xs) < 2:
+            xs = [l for l in lines if l not in ys]
+        elif len(ys) < 2 and len(xs) == 2:
+            ys = [l for l in lines if l not in xs]
+
         #print(len(xs), len(ys))
-        #print("--------------------")
+        print("--------------------")
 
         n = [l for l in xs if l.start.y == mxy or l.end.y == mxy][0]
         s = [l for l in xs if l.start.y == mny or l.end.y == mny][0]
@@ -684,6 +714,33 @@ class DraftingPen(RecordingPen, SHContext):
     def ecy(self):
         n, s, e, w = self.nsew()
         return n.interp(0.5, s.reverse())
+    
+    def shprop(self, s):
+        if s in SH_UNARY_SUFFIX_PROPS:
+            return SH_UNARY_SUFFIX_PROPS[s]
+        return s
+    
+    def pinch(self, edge, inset):
+        if isinstance(edge, str):
+            e = getattr(self, self.shprop(edge))
+        elif isinstance(edge, int):
+            if edge == 0:
+                e = self.en
+            elif edge == 1:
+                e = self.ee
+            elif edge == 2:
+                e = self.es
+            elif edge == 3:
+                e = self.ew
+        ei = e.inset(inset)
+        self.pvl()
+        for idx, (mv, pts) in enumerate(self.value):
+            for jdx, pt in enumerate(pts):
+                if pt == e.start:
+                    self.value[idx][1][jdx] = ei.start
+                elif pt == e.end:
+                    self.value[idx][1][jdx] = ei.end
+        return self
 
     # COMPUTATIONAL OBJECT
     

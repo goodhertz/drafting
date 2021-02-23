@@ -7,6 +7,7 @@ from drafting.sh.context import SHLookup, SHContext
 
 SH_UNARY_SUFFIX_FUNCS = {
     "~": "reverse",
+    "¶": "to_pen",
 }
 
 SH_UNARY_TO_STRING = {
@@ -49,7 +50,8 @@ SH_BINARY_OPS = {
     "R": "rows",
     "@": "__getitem__",
     "↕": "extr",
-    "P": "project"
+    "P": "project",
+    "π": "pinch",
 }
 
 SH_BINARY_OPS_EDGEAWARE = {
@@ -231,7 +233,7 @@ def sh(s, ctx:SHContext=None, dps=None):
         for k, v in ctx.subs.items():
             py = py.replace(k, v(ctx) if callable(v) else v)
 
-        print("EVAL:", py)
+        #print("EVAL:", py)
 
         try:
             res = eval(py, dict(
@@ -261,7 +263,7 @@ def sh(s, ctx:SHContext=None, dps=None):
 
     for phrase in split_before(s, lambda x: x in splits):
         phrase = "".join(phrase).strip()
-        print("PHRASE", phrase)
+        #print("PHRASE", phrase)
         last = None
         if not phrase:
             continue

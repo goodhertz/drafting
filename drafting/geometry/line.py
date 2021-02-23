@@ -127,6 +127,9 @@ class Line(Geometrical):
         dx, dy = polar_coord((0, 0), self.ang+math.radians(angle), dist)
         return self.t(pt).offset(dx, dy)
     
+    def inset(self, px):
+        return Line(self.tpx(px), self.reverse().tpx(px))
+    
     def extr(self, amt):
         p1, p2 = self
         return Line(p2.i(1+amt, p1), p1.i(1+amt, p2))
@@ -159,6 +162,7 @@ class Line(Geometrical):
         return self.intersection(other)
     
     def join(self, other):
+        from drafting.geometry.rect import Rect
         return Rect.FromPoints(self.start, self.end, other.end, other.start)
     
     def interp(self, x, other):
