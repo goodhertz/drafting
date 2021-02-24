@@ -50,7 +50,8 @@ SH_BINARY_OPS = {
     "R": "rows",
     "@": "__getitem__",
     "↕": "extr",
-    "P": "project",
+    #"P": "project",
+    "∏": "project",
     "π": "pinch",
 }
 
@@ -201,8 +202,10 @@ def shgroup(s):
     
     return shphrase(s)
 
-def sh(s, ctx:SHContext=None, dps=None):
+def sh(s, ctx:SHContext=None, dps=None, subs={}):
     from drafting.pens.draftingpen import DraftingPen
+
+    #print("SH>", s, subs)
 
     if ctx is None:
         ctx = SHContext()
@@ -232,8 +235,11 @@ def sh(s, ctx:SHContext=None, dps=None):
 
         for k, v in ctx.subs.items():
             py = py.replace(k, v(ctx) if callable(v) else v)
+        
+        for k, v in subs.items():
+            py = py.replace(k, str(v))
 
-        #print("EVAL:", py)
+        #print("EVAL<", py)
 
         try:
             res = eval(py, dict(

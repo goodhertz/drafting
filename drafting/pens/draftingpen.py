@@ -144,8 +144,8 @@ class DraftingPen(RecordingPen, SHContext):
     def __invert__(self):
         return self.reverse()
     
-    def sh(self, s):
-        res = sh(s, self)
+    def sh(self, s, subs={}):
+        res = sh(s, self, subs={"¬":self._last, **subs})
         if res[0] == "∫":
             res = [self.single_pen_class().gs(res[1:])]
         return res
@@ -157,8 +157,8 @@ class DraftingPen(RecordingPen, SHContext):
             self.record(p)
         return self
     
-    def run_macros(self, s):
-        macros = self.macros
+    def run_macros(self, s, macros={}):
+        macros = {**self.macros, **macros}
         for k, v in macros.items():
             def repl(m):
                 vo = v
@@ -179,12 +179,19 @@ class DraftingPen(RecordingPen, SHContext):
             s = mre.sub(repl, s)
         return s
     
-    def gs(self, s, fn=None, tag=None, writer=None):
+    def gs(self, s, fn=None, tag=None, writer=None, ctx=None, dps=None, macros={}):
+        ctx = ctx or self
+
+        def sp(_s):
+            return [x.strip() for x in re.split(r"\s|\n", _s)]
+
         if isinstance(s, str):
-            s = self.run_macros(s)
-            e = sh(s, self)
+            s = s
+            #e = sh(s, ctx, dps)
+            moves = sp(s)
         else:
             e = s
+            moves = e
         
         def one_move(_e, move="lineTo"):
             if _e is None:
@@ -204,10 +211,21 @@ class DraftingPen(RecordingPen, SHContext):
                     if macro == "F":
                         writer(self, macro, _e[1:])
 
-        one_move(e[0], move="moveTo")
+        mvs = sp(self.run_macros(moves[0], macros=macros))
+        res = sh(mvs[0], ctx, dps)
+        one_move(res[0], move="moveTo")
 
-        for _e in e[1:]:
-            one_move(_e, move="lineTo")
+        #if len(mvs) > 1:
+        #    moves = mvs[1:] + moves[1:]
+
+        for _m in moves[1:]:
+            last = self._last
+            ctx._last = last
+            mvs = sp(self.run_macros(_m, macros=macros))
+            for mv in mvs:
+                res = sh(mv, ctx, dps, subs={"¬":last})
+                if res:
+                    one_move(res[0], move="lineTo")
         
         if self.unended():
             self.closePath()
@@ -642,8 +660,8 @@ class DraftingPen(RecordingPen, SHContext):
         mnx, mny, mxx, mxy = self.bounds().mnmnmxmx()
         min_ang = min([l.ang for l in lines])
         max_ang = max([l.ang for l in lines])
-        for idx, l in enumerate(lines):
-            print(idx, ">", l.ang, min_ang, max_ang)
+        #for idx, l in enumerate(lines):
+        #    print(idx, ">", l.ang, min_ang, max_ang)
         xs = [l for l in lines if math.isclose(l.ang, min_ang)]
         ys = [l for l in lines if math.isclose(l.ang, max_ang)]
 
@@ -653,7 +671,7 @@ class DraftingPen(RecordingPen, SHContext):
             ys = [l for l in lines if l not in xs]
 
         #print(len(xs), len(ys))
-        print("--------------------")
+        #print("--------------------")
 
         n = [l for l in xs if l.start.y == mxy or l.end.y == mxy][0]
         s = [l for l in xs if l.start.y == mny or l.end.y == mny][0]

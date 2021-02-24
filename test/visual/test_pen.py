@@ -1,16 +1,15 @@
 from coldtype import *
 from drafting.pens.draftingpens import DraftingPen, DraftingPens
 
+def flr(ln, amt=50, crv=65, mid="50"):
+    mid = float(mid)/100
+    if "~" in ln:
+        amt = -int(amt)
+    a, b, c = norm(0.5, 0, mid), mid, norm(0.5, mid, 1)
+    return f"""({ln})∏{a},-{amt}|{crv}|({ln})∏{b},-{amt} ({ln})∏{c},-{amt}|{crv}|({ln})⍵"""
+
 @renderable()
 def test_bowing(r):
-    def flr(ln, amt=50, crv=65, mid="50"):
-        mid = float(mid)/100
-        if "~" in ln:
-            amt = -int(amt)
-        a, b, c = norm(0.5, 0, mid), mid, norm(0.5, mid, 1)
-        return f"""({ln})P{a},-{amt}|{crv}|({ln})P{b},-{amt}
-            ({ln})P{c},-{amt}|{crv}|({ln})⍵"""
-
     return ((ß:=DPS())
         .define(
             r=r.inset(400, 100),
@@ -26,7 +25,7 @@ def test_bowing(r):
         #.pen().skeleton()
         )
     
-@renderable(solo=1)
+@renderable()
 def test_trapezoid(r):
     return ((ß:=DPS())
         .define(
@@ -35,3 +34,12 @@ def test_trapezoid(r):
         #.ap(DP(ß.defs.r).en.offset(0, -20).inset(20))
         .ap(DP(ß.defs.r).pinch("⊤", 50).ee)
         .f(None).s(0).sw(4))
+
+@renderable(solo=1)
+def test_last_pt(r):
+    return ((ß:=DPS())
+        .define(r=r.inset(400, 100))
+        .macro(flr=flr)
+        .gs("$r↗ @flr:¬⨝$r↙ ɜ")
+        .f(None).s(0).sw(4)
+        .pen().skeleton())
