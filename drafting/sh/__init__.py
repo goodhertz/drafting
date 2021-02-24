@@ -11,6 +11,12 @@ SH_UNARY_SUFFIX_FUNCS = {
 }
 
 SH_UNARY_TO_STRING = {
+    "⊢": "w",
+    "⊣": "e",
+    "⊤": "n",
+    "⊥": "s",
+    "⌶": "cx",
+    "Ｈ": "cy",
     "←": "W",
     "↑": "N",
     "→": "E",

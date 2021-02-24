@@ -211,10 +211,11 @@ class DraftingPen(RecordingPen, SHContext):
                     macro = "".join(_e[0][1:])
                     if macro in macros:
                         macro_fn = macros[macro]
-                        print(">>>", _e[1:])
+                        #print(">>>", _e[1:])
                         macro_fn(self, *_e[1:])
-            elif len(_e) == 3:
-                self.boxCurveTo(_e[-1], _e[0], _e[1])
+            elif len(_e) >= 3:
+                #print("BCT", _e)
+                self.boxCurveTo(*_e)
 
         mvs = [moves[0]] #sp(self.run_macros(moves[0], macros=macros))
         res = sh(mvs[0], ctx, dps)
@@ -379,7 +380,7 @@ class DraftingPen(RecordingPen, SHContext):
         self.closePath()
         return self
     
-    def boxCurveTo(self, pt, point, factor, mods={}):
+    def boxCurveTo(self, point, factor, pt, po=(0, 0), mods={}):
         a = Point(self.value[-1][-1][-1])
         d = Point(pt)
         box = Rect.FromMnMnMxMx([min(a.x, d.x), min(a.y, d.y), max(a.x, d.x), max(a.y, d.y)])
@@ -400,6 +401,9 @@ class DraftingPen(RecordingPen, SHContext):
             p1, p2 = point
             p1 = box.point(p1)
             p2 = box.point(p2)
+        
+        p1 = p1.offset(*po)
+        p2 = p2.offset(*po)
         
         b = a.interp(f1, p1)
         c = d.interp(f2, p2)
@@ -509,6 +513,14 @@ class DraftingPen(RecordingPen, SHContext):
         if y is None:
             y = x
         return self.transform(Transform(1, 0, 0, 1, x, y), transformFrame=transformFrame)
+    
+    offset = translate
+
+    def offset_x(self, x):
+        return self.translate(x, 0)
+    
+    def offset_y(self, y):
+        return self.translate(0, y)
     
     def skew(self, x=0, y=0, point=None):
         t = Transform()
