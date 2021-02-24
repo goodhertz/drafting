@@ -145,7 +145,11 @@ class DraftingPen(RecordingPen, SHContext):
         return self.reverse()
     
     def sh(self, s, subs={}):
-        res = sh(s, self, subs={"¬":self._last, **subs})
+        try:
+            start = self.value[0][1][-1]
+        except:
+            start = None
+        res = sh(s, self, subs={"¬":self._last, "§":start, **subs})
         if res[0] == "∫":
             res = [self.single_pen_class().gs(res[1:])]
         return res
@@ -219,13 +223,18 @@ class DraftingPen(RecordingPen, SHContext):
         #if len(mvs) > 1:
         #    moves = mvs[1:] + moves[1:]
 
+        try:
+            start = self.value[0][1][-1]
+        except:
+            start = None
+
         for _m in moves[1:]:
             last = self._last
             ctx._last = last
             #mvs = sp(self.run_macros(_m, macros=macros))
             mvs = [_m]
             for mv in mvs:
-                res = sh(mv, ctx, dps, subs={"¬":last})
+                res = sh(mv, ctx, dps, subs={"¬":last,"§":start})
                 if res:
                     one_move(res[0], move="lineTo")
         
