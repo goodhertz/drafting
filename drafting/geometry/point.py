@@ -1,7 +1,7 @@
 import math
 from drafting.geometry.geometrical import Geometrical
 from drafting.interpolation import norm
-from drafting.geometry.primitives import polar_coord
+from drafting.geometry.primitives import polar_coord, line_intersection, calc_angle, calc_vector
 
 
 class Point(Geometrical):
@@ -170,8 +170,8 @@ class Point(Geometrical):
         from drafting.geometry.line import Line
         return Line(self, other)
     
-    def as3d(self):
-        return Point3D(self)
+    #def as3d(self):
+    #    return Point3D(self)
     
     def reverse(self):
         return Point(self.y, self.x)

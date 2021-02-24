@@ -181,6 +181,7 @@ class DraftingPen(RecordingPen, SHContext):
     
     def gs(self, s, fn=None, tag=None, writer=None, ctx=None, dps=None, macros={}):
         ctx = ctx or self
+        macros = {**self.macros, **macros}
 
         def sp(_s):
             return [x.strip() for x in re.split(r"\s|\n", _s)]
@@ -202,16 +203,16 @@ class DraftingPen(RecordingPen, SHContext):
                 self.rect(_e)
             elif isinstance(_e, str):
                 getattr(self, _e)()
+            elif _e[0][0] == "∑":
+                    macro = "".join(_e[0][1:])
+                    if macro in macros:
+                        macro_fn = macros[macro]
+                        print(">>>", _e[1:])
+                        macro_fn(self, *_e[1:])
             elif len(_e) == 3:
                 self.boxCurveTo(_e[-1], _e[0], _e[1])
-            else:
-                if _e[0][0] == "ᛗ":
-                    macro = _e[0][-1]
-                    #print("MACRO", macro, writer)
-                    if macro == "F":
-                        writer(self, macro, _e[1:])
 
-        mvs = sp(self.run_macros(moves[0], macros=macros))
+        mvs = [moves[0]] #sp(self.run_macros(moves[0], macros=macros))
         res = sh(mvs[0], ctx, dps)
         one_move(res[0], move="moveTo")
 
@@ -221,7 +222,8 @@ class DraftingPen(RecordingPen, SHContext):
         for _m in moves[1:]:
             last = self._last
             ctx._last = last
-            mvs = sp(self.run_macros(_m, macros=macros))
+            #mvs = sp(self.run_macros(_m, macros=macros))
+            mvs = [_m]
             for mv in mvs:
                 res = sh(mv, ctx, dps, subs={"¬":last})
                 if res:
