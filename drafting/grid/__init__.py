@@ -17,19 +17,20 @@ def parse_line(d, line):
         remaining = round(remaining)
         #raise Exception("floating parse")
     auto_count = reified.count("auto")
-    auto_d = remaining / auto_count
-    auto_ds = [auto_d] * auto_count
-    if not auto_d.is_integer():
-        auto_d_floor = math.floor(auto_d)
-        leftover = remaining - auto_d_floor * auto_count
-        for aidx, ad in enumerate(auto_ds):
-            if leftover > 0:
-                auto_ds[aidx] = auto_d_floor + 1
-                leftover -= 1
-            else:
-                auto_ds[aidx] = auto_d_floor
-        #print(auto_ds)
-        #print("NO", auto_d - int(auto_d))
+    if auto_count > 0:
+        auto_d = remaining / auto_count
+        auto_ds = [auto_d] * auto_count
+        if not auto_d.is_integer():
+            auto_d_floor = math.floor(auto_d)
+            leftover = remaining - auto_d_floor * auto_count
+            for aidx, ad in enumerate(auto_ds):
+                if leftover > 0:
+                    auto_ds[aidx] = auto_d_floor + 1
+                    leftover -= 1
+                else:
+                    auto_ds[aidx] = auto_d_floor
+            #print(auto_ds)
+            #print("NO", auto_d - int(auto_d))
     res = []
     for r in reified:
         if r == "auto":

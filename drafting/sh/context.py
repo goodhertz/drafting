@@ -6,6 +6,12 @@ class SHLookup():
         self.field = field
         self.values = {}
     
+    def get(self, k, default=None):
+        if k in self.values:
+            return self.values[k]
+        else:
+            return default
+    
     def __getitem__(self, k):
         return self.values[k]
     
