@@ -161,28 +161,6 @@ class DraftingPen(RecordingPen, SHContext):
             self.record(p)
         return self
     
-    def run_macros(self, s, macros={}):
-        macros = {**self.macros, **macros}
-        for k, v in macros.items():
-            def repl(m):
-                vo = v
-                if isinstance(v, str):
-                    repls = m.group(1).split(",")
-                    for idx, r in enumerate(repls):
-                        vo = vo.replace(f"${idx+1}", r)
-                    return vo
-                elif callable(v):
-                    #print("GROUPS", m.groups())
-                    vo = v(*m.group(1).split(","))
-                    #print("RES", vo)
-                    return vo
-                else:
-                    raise TypeError("macro must be string or callable")
-
-            mre = re.compile(fr"@{k}\:([^\s]+)")
-            s = mre.sub(repl, s)
-        return s
-    
     def gs(self, s, fn=None, tag=None, writer=None, ctx=None, dps=None, macros={}):
         ctx = ctx or self
         macros = {**self.macros, **macros}
@@ -211,18 +189,15 @@ class DraftingPen(RecordingPen, SHContext):
                     macro = "".join(_e[0][1:])
                     if macro in macros:
                         macro_fn = macros[macro]
-                        #print(">>>", _e[1:])
                         macro_fn(self, *_e[1:])
+                    else:
+                        raise Exception("unrecognized macro '" + macro + "'")
             elif len(_e) >= 3:
-                #print("BCT", _e)
                 self.boxCurveTo(*_e)
 
-        mvs = [moves[0]] #sp(self.run_macros(moves[0], macros=macros))
+        mvs = [moves[0]]
         res = sh(mvs[0], ctx, dps)
         one_move(res[0], move="moveTo")
-
-        #if len(mvs) > 1:
-        #    moves = mvs[1:] + moves[1:]
 
         try:
             start = self.value[0][1][-1]
@@ -232,12 +207,9 @@ class DraftingPen(RecordingPen, SHContext):
         for _m in moves[1:]:
             last = self._last
             ctx._last = last
-            #mvs = sp(self.run_macros(_m, macros=macros))
-            mvs = [_m]
-            for mv in mvs:
-                res = sh(mv, ctx, dps, subs={"¬":last,"§":start})
-                if res:
-                    one_move(res[0], move="lineTo")
+            res = sh(_m, ctx, dps, subs={"¬":last,"§":start})
+            if res:
+                one_move(res[0], move="lineTo")
         
         if self.unended():
             self.closePath()
