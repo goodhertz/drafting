@@ -113,7 +113,10 @@ class DraftingPens(DraftingPen):
     
     def gs(self, s, fn=None, tag=None, writer=None):
         return self.append(
-            self.single_pen_class().gs(sh(s, ctx=self, dps=type(self)()), tag=tag, fn=fn, writer=writer))
+            self.single_pen_class().gs(s,
+                tag=tag, fn=fn, writer=writer,
+                macros=self.macros,
+                ctx=self, dps=type(self)()))
     
     def gss(self, s):
         dps = type(self)()

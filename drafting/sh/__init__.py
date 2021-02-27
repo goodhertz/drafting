@@ -7,9 +7,16 @@ from drafting.sh.context import SHLookup, SHContext
 
 SH_UNARY_SUFFIX_FUNCS = {
     "~": "reverse",
+    "¶": "to_pen",
 }
 
 SH_UNARY_TO_STRING = {
+    "⊢": "w",
+    "⊣": "e",
+    "⊤": "n",
+    "⊥": "s",
+    "⌶": "cx",
+    "Ｈ": "cy",
     "←": "W",
     "↑": "N",
     "→": "E",
@@ -49,6 +56,9 @@ SH_BINARY_OPS = {
     "R": "rows",
     "@": "__getitem__",
     "↕": "extr",
+    #"P": "project",
+    "∏": "project",
+    "π": "pinch",
 }
 
 SH_BINARY_OPS_EDGEAWARE = {
@@ -198,8 +208,10 @@ def shgroup(s):
     
     return shphrase(s)
 
-def sh(s, ctx:SHContext=None, dps=None):
+def sh(s, ctx:SHContext=None, dps=None, subs={}):
     from drafting.pens.draftingpen import DraftingPen
+
+    #print("SH>", s, subs)
 
     if ctx is None:
         ctx = SHContext()
@@ -220,14 +232,20 @@ def sh(s, ctx:SHContext=None, dps=None):
         py = (shgroup(phrase))
         if not py:
             return None
+
+        for k, v in SH_PATH_OPS.items():
+            py = py.replace(k, '"' + v + '"')
         
         for k, v in ctx.lookups.items():
             py = py.replace(v.symbol, f"ctx.{k}.")
 
         for k, v in ctx.subs.items():
             py = py.replace(k, v(ctx) if callable(v) else v)
+        
+        for k, v in subs.items():
+            py = py.replace(k, str(v))
 
-        #print("EVAL:", py)
+        #print("EVAL<", py)
 
         try:
             res = eval(py, dict(
@@ -246,8 +264,8 @@ def sh(s, ctx:SHContext=None, dps=None):
 
     s = re.sub(r"([\$\&]{1}[a-z]+)([↖↑↗→↘↓↙←•⍺⍵µ]{2,})", expand_multisuffix, s)
 
-    for k, v in SH_PATH_OPS.items():
-        s = s.replace(k, '"' + v + '"')
+    # for k, v in SH_PATH_OPS.items():
+    #     s = s.replace(k, '"' + v + '"')
 
     join_to_path = False
     splits = ["ƒ"]
@@ -279,7 +297,7 @@ def sh(s, ctx:SHContext=None, dps=None):
             tuple = phrase.split("|")
             for i, t in enumerate(tuple):
                 if isinstance(t, str):
-                    if "ᛗ" in t:
+                    if "∑" in t:
                         t = ",".join([f"'{c}'" for c in t])
                     elif len(t) > 1:
                         if t[0] in SH_UNARY_TO_STRING:

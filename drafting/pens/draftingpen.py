@@ -1,4 +1,6 @@
-import math
+import enum
+import math, re
+
 from time import sleep
 from typing import Callable, Optional
 from collections import OrderedDict
@@ -13,7 +15,7 @@ from fontTools.pens.reverseContourPen import ReverseContourPen
 from fontPens.flattenPen import FlattenPen
 from drafting.geometry import Atom, Point, Line, Edge, Rect, align
 from drafting.color import normalize_color
-from drafting.sh import sh, SHContext
+from drafting.sh import SH_UNARY_SUFFIX_PROPS, sh, SHContext
 
 from drafting.pens.misc import BooleanOp, calculate_pathop, ExplodingPen, SmoothPointsPen
 
@@ -142,8 +144,12 @@ class DraftingPen(RecordingPen, SHContext):
     def __invert__(self):
         return self.reverse()
     
-    def sh(self, s):
-        res = sh(s, self)
+    def sh(self, s, subs={}):
+        try:
+            start = self.value[0][1][-1]
+        except:
+            start = None
+        res = sh(s, self, subs={"¬":self._last, "§":start, **subs})
         if res[0] == "∫":
             res = [self.single_pen_class().gs(res[1:])]
         return res
@@ -155,11 +161,20 @@ class DraftingPen(RecordingPen, SHContext):
             self.record(p)
         return self
     
-    def gs(self, s, fn=None, tag=None, writer=None):
+    def gs(self, s, fn=None, tag=None, writer=None, ctx=None, dps=None, macros={}):
+        ctx = ctx or self
+        macros = {**self.macros, **macros}
+
+        def sp(_s):
+            return [x.strip() for x in re.split(r"\s|\n", _s)]
+
         if isinstance(s, str):
-            e = sh(s, self)
+            s = s
+            #e = sh(s, ctx, dps)
+            moves = sp(s)
         else:
             e = s
+            moves = e
         
         def one_move(_e, move="lineTo"):
             if _e is None:
@@ -170,19 +185,31 @@ class DraftingPen(RecordingPen, SHContext):
                 self.rect(_e)
             elif isinstance(_e, str):
                 getattr(self, _e)()
-            elif len(_e) == 3:
-                self.boxCurveTo(_e[-1], _e[0], _e[1])
-            else:
-                if _e[0][0] == "ᛗ":
-                    macro = _e[0][-1]
-                    #print("MACRO", macro, writer)
-                    if macro == "F":
-                        writer(self, macro, _e[1:])
+            elif _e[0][0] == "∑":
+                    macro = "".join(_e[0][1:])
+                    if macro in macros:
+                        macro_fn = macros[macro]
+                        macro_fn(self, *_e[1:])
+                    else:
+                        raise Exception("unrecognized macro '" + macro + "'")
+            elif len(_e) >= 3:
+                self.boxCurveTo(*_e)
 
-        one_move(e[0], move="moveTo")
+        mvs = [moves[0]]
+        res = sh(mvs[0], ctx, dps)
+        one_move(res[0], move="moveTo")
 
-        for _e in e[1:]:
-            one_move(_e, move="lineTo")
+        try:
+            start = self.value[0][1][-1]
+        except:
+            start = None
+
+        for _m in moves[1:]:
+            last = self._last
+            ctx._last = last
+            res = sh(_m, ctx, dps, subs={"¬":last,"§":start})
+            if res:
+                one_move(res[0], move="lineTo")
         
         if self.unended():
             self.closePath()
@@ -325,7 +352,7 @@ class DraftingPen(RecordingPen, SHContext):
         self.closePath()
         return self
     
-    def boxCurveTo(self, pt, point, factor, mods={}):
+    def boxCurveTo(self, point, factor, pt, po=(0, 0), mods={}):
         a = Point(self.value[-1][-1][-1])
         d = Point(pt)
         box = Rect.FromMnMnMxMx([min(a.x, d.x), min(a.y, d.y), max(a.x, d.x), max(a.y, d.y)])
@@ -346,6 +373,9 @@ class DraftingPen(RecordingPen, SHContext):
             p1, p2 = point
             p1 = box.point(p1)
             p2 = box.point(p2)
+        
+        p1 = p1.offset(*po)
+        p2 = p2.offset(*po)
         
         b = a.interp(f1, p1)
         c = d.interp(f2, p2)
@@ -455,6 +485,14 @@ class DraftingPen(RecordingPen, SHContext):
         if y is None:
             y = x
         return self.transform(Transform(1, 0, 0, 1, x, y), transformFrame=transformFrame)
+    
+    offset = translate
+
+    def offset_x(self, x):
+        return self.translate(x, 0)
+    
+    def offset_y(self, y):
+        return self.translate(0, y)
     
     def skew(self, x=0, y=0, point=None):
         t = Transform()
@@ -619,8 +657,13 @@ class DraftingPen(RecordingPen, SHContext):
         max_ang = max([l.ang for l in lines])
         #for idx, l in enumerate(lines):
         #    print(idx, ">", l.ang, min_ang, max_ang)
-        xs = [l for l in lines if math.isclose(l.ang,min_ang)]
+        xs = [l for l in lines if math.isclose(l.ang, min_ang)]
         ys = [l for l in lines if math.isclose(l.ang, max_ang)]
+
+        if len(ys) == 2 and len(xs) < 2:
+            xs = [l for l in lines if l not in ys]
+        elif len(ys) < 2 and len(xs) == 2:
+            ys = [l for l in lines if l not in xs]
 
         #print(len(xs), len(ys))
         #print("--------------------")
@@ -684,6 +727,33 @@ class DraftingPen(RecordingPen, SHContext):
     def ecy(self):
         n, s, e, w = self.nsew()
         return n.interp(0.5, s.reverse())
+    
+    def shprop(self, s):
+        if s in SH_UNARY_SUFFIX_PROPS:
+            return SH_UNARY_SUFFIX_PROPS[s]
+        return s
+    
+    def pinch(self, edge, inset):
+        if isinstance(edge, str):
+            e = getattr(self, self.shprop(edge))
+        elif isinstance(edge, int):
+            if edge == 0:
+                e = self.en
+            elif edge == 1:
+                e = self.ee
+            elif edge == 2:
+                e = self.es
+            elif edge == 3:
+                e = self.ew
+        ei = e.inset(inset)
+        self.pvl()
+        for idx, (mv, pts) in enumerate(self.value):
+            for jdx, pt in enumerate(pts):
+                if pt == e.start:
+                    self.value[idx][1][jdx] = ei.start
+                elif pt == e.end:
+                    self.value[idx][1][jdx] = ei.end
+        return self
 
     # COMPUTATIONAL OBJECT
     
