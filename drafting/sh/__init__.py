@@ -257,12 +257,13 @@ def sh(s, ctx:SHContext=None, dps=None, subs={}):
                 Rect=Rect,
                 DraftingPen=DraftingPen)
                 , last_locals)
+            #print("LOCALS", last_locals)
             return res
         except SyntaxError as e:
             print("SYNTAX ERROR", e, phrase, py)
             return None
 
-    s = re.sub(r"([\$\&]{1}[a-z]+)([↖↑↗→↘↓↙←•⍺⍵µ]{2,})", expand_multisuffix, s)
+    #s = re.sub(r"([\$\&]{1}[a-z]+)([↖↑↗→↘↓↙←•⍺⍵µ]{2,})", expand_multisuffix, s)
 
     # for k, v in SH_PATH_OPS.items():
     #     s = s.replace(k, '"' + v + '"')
@@ -318,4 +319,5 @@ def sh(s, ctx:SHContext=None, dps=None, subs={}):
         if dps is not None:
             dps.append(evaled[-1])
     
+    ctx.locals = {**ctx.locals, **last_locals}
     return evaled

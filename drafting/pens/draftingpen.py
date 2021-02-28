@@ -165,11 +165,19 @@ class DraftingPen(RecordingPen, SHContext):
         ctx = ctx or self
         macros = {**self.macros, **macros}
 
+        def expand_multisuffix(m):
+            out = []
+            arrows = list(m.group(2))
+            for a in arrows:
+                out.append(m.group(1)+a)
+            return " ".join(out)
+
         def sp(_s):
             return [x.strip() for x in re.split(r"\s|\n", _s)]
 
         if isinstance(s, str):
             s = s
+            s = re.sub(r"([\$\&]{1}[a-z]+)([↖↑↗→↘↓↙←•⍺⍵µ]{2,})", expand_multisuffix, s)
             #e = sh(s, ctx, dps)
             moves = sp(s)
         else:
@@ -195,8 +203,12 @@ class DraftingPen(RecordingPen, SHContext):
             elif len(_e) >= 3:
                 self.boxCurveTo(*_e)
 
+        locals = {}
         mvs = [moves[0]]
-        res = sh(mvs[0], ctx, dps)
+        if isinstance(mvs[0], str):
+            res = sh(mvs[0], ctx, dps)
+        else:
+            res = [mvs[0]]
         one_move(res[0], move="moveTo")
 
         try:
@@ -207,7 +219,10 @@ class DraftingPen(RecordingPen, SHContext):
         for _m in moves[1:]:
             last = self._last
             ctx._last = last
-            res = sh(_m, ctx, dps, subs={"¬":last,"§":start})
+            if isinstance(_m, str):
+                res = sh(_m, ctx, dps, subs={"¬":last,"§":start})
+            else:
+                res = [_m]
             if res:
                 one_move(res[0], move="lineTo")
         
