@@ -673,6 +673,17 @@ class DraftingPen(RecordingPen, SHContext):
         e = [l for l in ys if l.start.x == mxx or l.end.x == mxx][0]
         w = [l for l in ys if l.start.x == mnx or l.end.x == mnx][0]
         return n, s, e, w
+    
+    def avg(self):
+        self.pvl()
+        pts = []
+        for mv, pts in self.value:
+            if len(pts) > 0:
+                pts.extend(pts)
+        n = len(pts)
+        return Point(
+            sum([p.x for p in pts])/n,
+            sum([p.y for p in pts])/n)
 
     def point(self, pt):
         n, s, e, w = self.nsew()

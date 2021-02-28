@@ -450,6 +450,12 @@ class Rect(Geometrical):
             sw = sh * 1/other.aspect()
         #print(sh, fw, fh, other.aspect())
         return self.take(fh, "mdy")
+    
+    def avg(self):
+        pts = self.cardinals()
+        return Point(
+            sum([p.x for p in pts])/4,
+            sum([p.y for p in pts])/4)
 
     def point(self, eh, ev=Edge.MinX):
         """
