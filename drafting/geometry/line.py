@@ -17,6 +17,18 @@ class Line(Geometrical):
         return self.start == l.start and self.end == l.end
 
     __hash__ = object.__hash__
+
+    def point(self, p):
+        if p == "N":
+            return self.pn
+        elif p == "E":
+            return self.pe
+        elif p == "S":
+            return self.ps
+        elif p == "W":
+            return self.pw
+        elif p == "C":
+            return self.mid
     
     @property
     def mid(self):
@@ -82,6 +94,10 @@ class Line(Geometrical):
         a2 = math.pow(self.start.x - self.end.x, 2)
         b2 = math.pow(self.start.y - self.end.y, 2)
         return math.sqrt(a2 + b2)
+    
+    @property
+    def l(self):
+        return self.length()
     
     def tpx(self, tpx, limit=True):
         x = tpx * math.cos(self.angle())
