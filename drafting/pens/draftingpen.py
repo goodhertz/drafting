@@ -692,10 +692,11 @@ class DraftingPen(RecordingPen, SHContext):
     def avg(self):
         self.pvl()
         pts = []
-        for mv, pts in self.value:
-            if len(pts) > 0:
-                pts.extend(pts)
+        for _, _pts in self.value:
+            if len(_pts) > 0:
+                pts.extend(_pts)
         n = len(pts)
+        #print("AVG", self, self.value)
         return Point(
             sum([p.x for p in pts])/n,
             sum([p.y for p in pts])/n)
@@ -753,6 +754,17 @@ class DraftingPen(RecordingPen, SHContext):
     def ecy(self):
         n, s, e, w = self.nsew()
         return n.interp(0.5, s.reverse())
+    
+    def edge(self, e):
+        e = e.lower()
+        if e == "n":
+            return self.en
+        elif e == "s":
+            return self.es
+        elif e == "e":
+            return self.ee
+        elif e == "w":
+            return self.ew
     
     def shprop(self, s):
         if s in SH_UNARY_SUFFIX_PROPS:
