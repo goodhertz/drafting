@@ -149,6 +149,7 @@ class DraftingPen(RecordingPen, SHContext):
             start = self.value[0][1][-1]
         except:
             start = None
+        #print("SH", s, self.defs)
         res = sh(s, self, subs={"¬":self._last, "§":start, **subs})
         if res[0] == "∫":
             res = [self.single_pen_class().gs(res[1:])]
@@ -367,7 +368,10 @@ class DraftingPen(RecordingPen, SHContext):
         self.closePath()
         return self
     
-    def boxCurveTo(self, point, factor, pt, po=(0, 0), mods={}):
+    def boxCurveTo(self, point, factor, pt, po=(0, 0), mods={}, flatten=False):
+        if flatten:
+            self.lineTo(pt)
+            return self
         a = Point(self.value[-1][-1][-1])
         d = Point(pt)
         box = Rect.FromMnMnMxMx([min(a.x, d.x), min(a.y, d.y), max(a.x, d.x), max(a.y, d.y)])
@@ -424,6 +428,8 @@ class DraftingPen(RecordingPen, SHContext):
         if with_data:
             dp._frame = self._frame
             dp.defs = self.defs # necessary to copy this and not pass by ref?
+            if hasattr(self, "macros"):
+                dp.macros = self.macros
         else:
             dp.defs = self.defs
         return dp
@@ -837,9 +843,16 @@ class DraftingPen(RecordingPen, SHContext):
     def cond(self, condition, if_true: Callable[["DraftingPen"], None], if_false=Callable[["DraftingPen"], None]):
         # TODO make if_false optional
         if condition:
-            if_true(self)
+            if callable(if_true):
+                if_true(self)
+            else:
+                self.gs(if_true)
         else:
-            if_false(self)
+            if if_false:
+                if callable(if_false):
+                    if_false(self)
+                else:
+                    self.gs(if_false)
         return self
 
     # BOOLEAN OPERATIONS

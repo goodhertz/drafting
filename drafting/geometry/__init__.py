@@ -3,6 +3,7 @@ from drafting.geometry.geometrical import Geometrical
 from drafting.geometry.atom import Atom
 from drafting.geometry.point import Point
 from drafting.geometry.line import Line
+from drafting.geometry.curve import Curve
 from drafting.geometry.edge import Edge, txt_to_edge
 from drafting.geometry.rect import Rect, align
 

@@ -123,6 +123,15 @@ class DraftingPens(DraftingPen):
         xs = sh(s, ctx=self, dps=dps)
         return self.extend(dps.pens)
     
+    def gsgroup(self, fn):
+        grouper = self.copy(with_data=False)
+        grouper.define(**self.defs.values)
+        grouper.macros = self.macros
+        grouper.pens = []
+        res = fn(grouper)
+        self.ap(res)
+        return self
+    
     # RecordingPen contract
 
     def moveTo(self, p0):

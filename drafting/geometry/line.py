@@ -36,35 +36,35 @@ class Line(Geometrical):
     
     @property
     def mxx(self):
-        return max([p.x for p in [self.start, self.end]])
+        return max([p.x for p in self.pts()])
     
     @property
     def mnx(self):
-        return min([p.x for p in [self.start, self.end]])
+        return min([p.x for p in self.pts()])
     
     @property
     def mxy(self):
-        return max([p.y for p in [self.start, self.end]])
+        return max([p.y for p in self.pts()])
     
     @property
     def mny(self):
-        return min([p.y for p in [self.start, self.end]])
+        return min([p.y for p in self.pts()])
     
     @property
     def pe(self):
-        return max([self.start, self.end], key=lambda p: p.x)
+        return max(self.pts(), key=lambda p: p.x)
     
     @property
     def pw(self):
-        return min([self.start, self.end], key=lambda p: p.x)
+        return min(self.pts(), key=lambda p: p.x)
     
     @property
     def pn(self):
-        return max([self.start, self.end], key=lambda p: p.y)
+        return max(self.pts(), key=lambda p: p.y)
     
     @property
     def ps(self):
-        return min([self.start, self.end], key=lambda p: p.y)
+        return min(self.pts(), key=lambda p: p.y)
     
     def __repr__(self):
         return f"Line({self.start}, {self.end})"
@@ -118,8 +118,11 @@ class Line(Geometrical):
     def ang(self):
         return self.angle()%math.pi
     
+    def pts(self):
+        return [self.start, self.end]
+    
     def transform(self, t):
-        pts = [self.start, self.end]
+        pts = self.pts()
         x1, x2 = [t.transformPoint(pt) for pt in pts]
         return Line(x1, x2)
 
@@ -159,6 +162,12 @@ class Line(Geometrical):
     
     def offset_y(self, dy):
         return self.offset(0, dy)
+    
+    def tan_out(self):
+        return self
+    
+    def tan_in(self):
+        return self
     
     o = offset
     
