@@ -149,6 +149,9 @@ class Line(Geometrical):
     def inset(self, px):
         return Line(self.tpx(px), self.reverse().tpx(px))
     
+    inset_y = inset
+    inset_x = inset
+    
     def extr(self, amt):
         p1, p2 = self
         return Line(p2.i(1+amt, p1), p1.i(1+amt, p2))

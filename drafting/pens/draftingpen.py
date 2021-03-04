@@ -202,7 +202,10 @@ class DraftingPen(RecordingPen, SHContext):
                     else:
                         raise Exception("unrecognized macro '" + macro + "'")
             elif len(_e) >= 3:
-                self.boxCurveTo(*_e)
+                if len(_e) >= 5:
+                    self.interpCurveTo(*_e)
+                else:
+                    self.boxCurveTo(*_e)
 
         locals = {}
         mvs = [moves[0]]
@@ -242,7 +245,10 @@ class DraftingPen(RecordingPen, SHContext):
         return self
 
     def lineTo(self, p1):
-        super().lineTo(p1)
+        if len(self.value) == 0:
+            super().moveTo(p1)
+        else:
+            super().lineTo(p1)
         self._last = p1
         return self
 
@@ -367,11 +373,20 @@ class DraftingPen(RecordingPen, SHContext):
             self.lineTo(pt)
         self.closePath()
         return self
+
+    def interpCurveTo(self, p1, f1, p2, f2, to, inset=0):
+        a = Point(self.value[-1][-1][-1])
+        d = Point(to)
+        pl = Line(p1, p2).inset(inset)
+        b = Line(a, pl.start).t(f1/100)
+        c = Line(d, pl.end).t(f2/100)
+        return self.curveTo(b, c, d)
     
     def boxCurveTo(self, point, factor, pt, po=(0, 0), mods={}, flatten=False):
         if flatten:
             self.lineTo(pt)
             return self
+        
         a = Point(self.value[-1][-1][-1])
         d = Point(pt)
         box = Rect.FromMnMnMxMx([min(a.x, d.x), min(a.y, d.y), max(a.x, d.x), max(a.y, d.y)])
