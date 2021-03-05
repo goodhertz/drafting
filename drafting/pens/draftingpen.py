@@ -38,6 +38,9 @@ class DraftingPen(RecordingPen, SHContext):
         self._parent = None
         self._last = None
 
+        self._typographic = False
+        self.glyphName = None
+
         self._current_attr_tag = "default"
         self.clearAttrs()
 
@@ -60,13 +63,16 @@ class DraftingPen(RecordingPen, SHContext):
         s = f"{type(self).__name__}<"
         if self._tag:
             s += self._tag + ":"
-        s += f"{len(self.value)}mvs:"
-        if self.value[-1][0] == "closePath":
-            s += "closed"
-        elif self.value[-1][0] == "endPath":
-            s += "end"
+        if len(self.value) == 0:
+            s += "(((empty)))"
         else:
-            s += "open"
+            s += f"{len(self.value)}mvs:"
+            if self.value[-1][0] == "closePath":
+                s += "closed"
+            elif self.value[-1][0] == "endPath":
+                s += "end"
+            else:
+                s += "open"
         s += "/>"
         return s
     
@@ -123,6 +129,13 @@ class DraftingPen(RecordingPen, SHContext):
                 return self._frame
         else:
             return self.bounds()
+    
+    def addFrame(self, frame, typographic=False, passthru=False):
+        """Add a new frame to the DATPen, replacing any old frame. Passthru ignored, there for compatibility"""
+        self._frame = frame
+        if typographic:
+            self.typographic = True
+        return self
     
     def unended(self):
         if len(self.value) == 0:

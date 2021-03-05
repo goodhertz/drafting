@@ -8,7 +8,12 @@ import pickle
 import sys
 import tempfile
 from types import SimpleNamespace
-import numpy
+
+try:
+    import numpy
+except ImportError:
+    pass
+
 from fontTools.pens.basePen import BasePen
 from fontTools.pens.pointPen import PointToSegmentPen
 from fontTools.pens.recordingPen import RecordingPen

@@ -1,8 +1,8 @@
-from drafting.pens.draftingpens import DraftingPen, DraftingPens
+#from drafting.pens.draftingpens import DraftingPen, DraftingPens
 from drafting.geometry import Rect, Point
 
 from drafting.text.shaper import segment
-from drafting.text.reader import Style, StyledString, FittableMixin, Font, normalize_font_path, SegmentedString
+from drafting.text.reader import Style, StyledString, FittableMixin, Font, normalize_font_path, SegmentedString,  _PenClass, _PensClass
 
 
 class GrafStyle():
@@ -16,7 +16,7 @@ class GrafStyle():
 class Graf():
     def __init__(self, lines, container, style=None, **kwargs):
         if isinstance(container, Rect):
-            self.container = DraftingPen().rect(container)
+            self.container = _PenClass().rect(container)
         else:
             self.container = container
         if style and isinstance(style, GrafStyle):
@@ -60,7 +60,7 @@ class Graf():
     
     def pens(self, align=False):
         rects = self.lineRects()
-        pens = DraftingPens()
+        pens = _PensClass()
         for idx, l in enumerate(self.lines):
             r = rects[idx]
             dps = l.pens().translate(r.x, r.y) # r.x
@@ -96,7 +96,7 @@ class Lockup(FittableMixin):
             adjusted = s.shrink() or adjusted
         return adjusted
 
-    def pens(self, pens_type=DraftingPens):
+    def pens(self):
         pens = []
         x_off = 0
         for s in self.slugs:
@@ -121,7 +121,7 @@ class Lockup(FittableMixin):
                 x_off += s.strings[-1].tracking
             except:
                 pass
-        return pens_type(pens)
+        return _PensClass(pens)
     
     def pen(self):
         return self.pens().pen()
@@ -176,7 +176,7 @@ class Composer():
         if fit is not None:
             self.graf.fit(fit)
     
-    def pens(self) -> DraftingPens:
+    def pens(self):
         """
         Structured representation of the multi-line text
         
@@ -184,7 +184,7 @@ class Composer():
         """
         return self.graf.pens()
     
-    def pen(self) -> DraftingPens:
+    def pen(self):
         """
         Entire multiline text as a single vector
         """

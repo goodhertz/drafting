@@ -52,7 +52,7 @@ class DraftingPens(DraftingPen):
     def __add__(self, item):
         return self.append(item)
     
-    def append(self, pen):
+    def append(self, pen, allow_blank=False):
         if isinstance(pen, Geometrical):
             return self.pens.append(self.single_pen_class(pen))
         elif isinstance(pen, DraftingPen):

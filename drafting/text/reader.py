@@ -18,6 +18,9 @@ from drafting.geometry import Rect, Point
 
 from typing import Optional, Callable, Union
 
+_PenClass = DraftingPen
+_PensClass = DraftingPens
+
 # try:
 #     from fontgoggles.font import getOpener
 #     from fontgoggles.font.baseFont import BaseFont
@@ -355,7 +358,7 @@ class Style():
         def stretcher(w, xp, i, p):
             np = (p.flatten(flatten) if flatten else p).nonlinear_transform(lambda x,y: (x if x < xp else x + w, y))
             if debug:
-                (np.record(DraftingPen()
+                (np.record(_PenClass()
                     .line([(xp, -250), (xp, 1000)])
                     .outline()))
             return np
@@ -374,10 +377,10 @@ class Style():
             np = (p.flatten(flatten) if flatten else p).nonlinear_transform(lambda x,y: (x if is_left((xdsc, -250), (xasc, 1000), (x, y)) else x + w, y))
             if debug:
                 (np
-                    .record(DraftingPen()
+                    .record(_PenClass()
                         .line([(xdsc, -250), (xasc, 1000)])
                         .outline())
-                    .record(DraftingPen()
+                    .record(_PenClass()
                         .moveTo((x0+50/2, y0+50/2))
                         .dots(radius=50)))
             return np
@@ -401,7 +404,7 @@ class Style():
             elif align == "mxy":
                 np.translate(0, -h)
             if debug:
-                (np.record(DraftingPen()
+                (np.record(_PenClass()
                     .line([(0, yp), (p.getFrame().point("E").x, yp)])
                     .outline()))
             return np
@@ -422,10 +425,10 @@ class Style():
             np = (p.flatten(flatten) if flatten else p).nonlinear_transform(lambda x,y: (x, y if not is_left(p0, p1, (x, y)) else y + h))
             if debug:
                 (np
-                    .record(DraftingPen()
+                    .record(_PenClass()
                         .line([p0, p1])
                         .outline())
-                    .record(DraftingPen()
+                    .record(_PenClass()
                         .moveTo((x0+50/2, y0+50/2))
                         .dots(radius=50)))
             return np
@@ -672,9 +675,9 @@ class StyledString(FittableMixin):
         t = t.scale(s)
         t = t.translate(glyph.frame.x/self.scale(), glyph.frame.y/self.scale())
         #t = t.translate(0, bs)
-        out_pen = DraftingPen()
+        out_pen = _PenClass()
         tp = TransformPen(out_pen, (t[0], t[1], t[2], t[3], t[4], t[5]))
-        ip = DraftingPen().record(in_pen)
+        ip = _PenClass().record(in_pen)
         if self.style.mods and glyph.name in self.style.mods:
             w, mod = self.style.mods[glyph.name]
             mod(-1, ip)
@@ -693,11 +696,12 @@ class StyledString(FittableMixin):
         return out_pen
     
     def _emptyPenWithAttrs(self):
-        attrs = dict(fill=self.style.fill)
+        #attrs = dict(fill=self.style.fill)
+        #if self.style.stroke:
+        #    attrs["stroke"] = dict(color=self.style.stroke, weight=self.style.strokeWidth)
+        dp = _PenClass().f(self.style.fill)
         if self.style.stroke:
-            attrs["stroke"] = dict(color=self.style.stroke, weight=self.style.strokeWidth)
-        dp = DraftingPen()
-        dp.attrs = attrs
+            dp.s(self.style.stroke).sw(self.style.strokeWidth)
         return dp
 
     def pens(self, frame=True) -> DraftingPens:
@@ -707,7 +711,7 @@ class StyledString(FittableMixin):
         self.resetGlyphRun()
         self.style.font.font.addGlyphDrawings(self.glyphs, colorLayers=True)
         
-        pens = DraftingPens()
+        pens = _PensClass()
         for idx, g in enumerate(self.glyphs):
             dp_atom = self._emptyPenWithAttrs()
             if len(g.glyphDrawing.layers) == 1:
@@ -718,7 +722,7 @@ class StyledString(FittableMixin):
                 if self.style.removeOverlap:
                     dp_atom.removeOverlap()
             else:
-                dp_atom = DraftingPens()
+                dp_atom = _PensClass()
                 dp_atom.layered = True
                 for layer in g.glyphDrawing.layers:
                     dp_layer = self._emptyPenWithAttrs()
@@ -776,7 +780,7 @@ class SegmentedString(FittableMixin):
         return adjusted
 
     def pens(self):
-        pens = DraftingPens()
+        pens = _PensClass()
         x_off = 0
         for s in self.strings:
             dps = s.pens(frame=True)
