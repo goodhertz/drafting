@@ -20,9 +20,14 @@ setuptools.setup(
         "drafting.sh",
         "drafting.grid",
         "drafting.pens",
+        "drafting.text",
         "drafting.color",
         "drafting.geometry",
-        "drafting.interpolation"
+        "drafting.fontgoggles",
+        "drafting.interpolation",
+        "drafting.fontgoggles.font",
+        "drafting.fontgoggles.misc",
+        "drafting.fontgoggles.compile",
     ],
     install_requires=[
         "fontPens",
