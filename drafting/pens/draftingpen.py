@@ -706,13 +706,16 @@ class DraftingPen(RecordingPen, SHContext):
         max_ang = max([l.ang for l in lines])
         #for idx, l in enumerate(lines):
         #    print(idx, ">", l.ang, min_ang, max_ang)
-        xs = [l for l in lines if math.isclose(l.ang, min_ang)]
-        ys = [l for l in lines if math.isclose(l.ang, max_ang)]
+        xs = [l for l in lines if l.ang < 0.25 or l.ang > 2.5]
+        ys = [l for l in lines if 1 < l.ang < 2]
 
         if len(ys) == 2 and len(xs) < 2:
             xs = [l for l in lines if l not in ys]
         elif len(ys) < 2 and len(xs) == 2:
             ys = [l for l in lines if l not in xs]
+        
+        #for l in ys:
+        #    print(l.ang)
 
         #print(len(xs), len(ys))
         #print("--------------------")
