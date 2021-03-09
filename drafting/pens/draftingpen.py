@@ -1183,39 +1183,3 @@ class DraftingPen(RecordingPen, SHContext):
                 return x+_c[0]+ax, (y+_c[1])+by
             return x+_c[0], _c[1]
         return self.nonlinear_transform(bender)
-        
-    def distribute_on_path(self, path, offset=0, cc=None, notfound=None, center=False):
-        if cc:
-            cutter = cc
-        else:
-            cutter = CurveCutter(path)
-        if center is not False:
-            offset = (cutter.length-self.bounds().w)/2 + center
-        limit = len(self.pens)
-        for idx, p in enumerate(self.pens):
-            f = p.getFrame()
-            bs = f.y
-            ow = offset + f.x + f.w / 2
-            #if ow < 0:
-            #    if notfound:
-            #        notfound(p)
-            if ow > cutter.length:
-                limit = min(idx, limit)
-            else:
-                _p, tangent = cutter.subsegmentPoint(end=ow)
-                x_shift = bs * math.cos(math.radians(tangent))
-                y_shift = bs * math.sin(math.radians(tangent))
-                t = Transform()
-                t = t.translate(_p[0] + x_shift - f.x, _p[1] + y_shift - f.y)
-                t = t.translate(f.x, f.y)
-                t = t.rotate(math.radians(tangent-90))
-                t = t.translate(-f.x, -f.y)
-                t = t.translate(-f.w*0.5)
-                p.transform(t)
-
-        if limit < len(self.pens):
-            self.pens = self.pens[0:limit]
-        return self
-    
-    # deprecated
-    distributeOnPath = distribute_on_path
