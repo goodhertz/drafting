@@ -569,6 +569,9 @@ class DraftingPen(RecordingPen, SHContext):
         self.translate(-x, -y)
         return self
     
+    def center_on_point(self, rect, pt, interp=1):
+        return self.translate(norm(interp, 0, rect.w/2-pt[0]), norm(interp, 0, rect.h/2-pt[1]))
+    
     def skew(self, x=0, y=0, point=None):
         t = Transform()
         if not point:
@@ -860,6 +863,10 @@ class DraftingPen(RecordingPen, SHContext):
     
     def define(self, *args, **kwargs):
         return self.context_record("$", "defs", None, *args, **kwargs)
+    
+    def declare(self, *whatever):
+        # TODO do something with what's declared somehow?
+        return self
     
     def macro(self, **kwargs):
         for k, v in kwargs.items():

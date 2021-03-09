@@ -170,6 +170,17 @@ class DraftingPens(DraftingPen):
     def replay(self, pen):
         self.pen().replay(pen)
     
+    def record(self, pen):
+        """Alias for append"""
+        if callable(pen):
+            return self.append(pen(self))
+        else:
+            return self.append(pen)
+    
+    def explode(self):
+        """Noop on a set"""
+        return self
+    
     # Drawing
     
     def pen(self):
@@ -365,3 +376,158 @@ class DraftingPens(DraftingPen):
     
     # deprecated
     distributeOnPath = distribute_on_path
+
+    def map(self, fn: Callable[[int, DraftingPen], Optional[DraftingPen]]):
+        """Apply `fn` to all top-level pen(s) in this set;
+        if `fn` returns a value, it will overwrite
+        the pen it was given as an argument;
+        fn lambda receives `idx, p` as arguments"""
+        for idx, p in enumerate(self.pens):
+            result = fn(idx, p)
+            if result:
+                self.pens[idx] = result
+        return self
+    
+    def mmap(self, fn: Callable[[int, DraftingPen], None]):
+        """Apply `fn` to all top-level pen(s) in this set but
+        do not look at return value; first m in mmap
+        stands for `mutate`;
+        fn lambda receives `idx, p` as arguments"""
+        for idx, p in enumerate(self.pens):
+            fn(idx, p)
+        return self
+    
+    def filter(self, fn: Callable[[int, DraftingPen], bool]):
+        """Filter top-level pen(s)"""
+        dps = self.multi_pen_class()
+        for idx, p in enumerate(self.pens):
+            if fn(idx, p):
+                dps.append(p)
+        #self.pens = dps.pens
+        #return self
+        return dps
+    
+    def pmap(self, fn):
+        """Apply `fn` to all individal pens, recursively"""
+        for idx, p in enumerate(self.pens):
+            if hasattr(p, "pens"):
+                p.pmap(fn)
+            else:
+                fn(idx, p)
+        return self
+    
+    def pfilter(self, fn):
+        """Filter all pens, recursively"""
+        to_keep = []
+        for idx, p in enumerate(self.pens):
+            if hasattr(p, "pens"):
+                matches = p.pfilter(fn)
+                if len(matches) > 0:
+                    to_keep.extend(matches)
+            if fn(idx, p):
+                to_keep.append(p)
+        return to_keep
+    
+    def index(self, idx, fn):
+        fn(self[idx])
+        return self
+    
+    def glyphs_named(self, glyph_name):
+        """Pluck glyphs named `glyph_name`"""
+        #return self.pfilter(lambda i, p: p.glyphName == glyph_name).pmap(lambda idx, p: mod_fn(p))
+        for p in self:
+            if callable(glyph_name) and glyph_name(p.glyphName):
+                yield p
+            elif p.glyphName == glyph_name:
+                yield p
+    
+    def tagged(self, tag):
+        """Yield all top-level pens tagged w/ `tag`"""
+        for p in self:
+            if p.tag() == tag:
+                yield p
+    
+    def get(self, k):
+        tagged = self.fft(k)
+        if tagged:
+            return tagged.copy()
+    
+    def fmmap(self, filter_fn:Callable[[int, DraftingPen], bool], map_fn:Callable[[int, DraftingPen], None]):
+        for idx, p in enumerate(self.pens):
+            if filter_fn(idx, p):
+                map_fn(idx, p)
+        return self
+
+    def ffg(self, glyph_name):
+        """(f)ind the (f)irst (g)lyph named this name"""
+        return list(self.glyphs_named(glyph_name))[0]
+    
+    def fft(self, tag, fn=None):
+        """(f)ind the (f)irst (t)agged with `tag`"""
+        try:
+            tagged = list(self.tagged(tag))[0]
+            if fn:
+                fn(tagged)
+                return self
+            else:
+                return tagged
+        except:
+            if fn:
+                return self
+            return None
+    
+    def remove(self, *args):
+        """remove a pen from these pens by identify, or by tag if a string is passed"""
+        for k in args:
+            if isinstance(k, str):
+                tagged = self.fft(k)
+                if tagged:
+                    self.pens.remove(tagged)
+            else:
+                self.pens.remove(k)
+        return self
+    
+    def mfilter(self, fn):
+        """Same as `filter` but (m)utates this DATPens
+        to now have only the filtered pens"""
+        self.pens = self.filter(fn)
+        return self
+    
+    def collapseonce(self):
+        pens = []
+        for idx, p in enumerate(self.pens):
+            pens.extend(p)
+        self.pens = pens
+        return self
+    
+    def collapse(self, levels=100, onself=False):
+        """AKA `flatten` in some programming contexts, though
+        `flatten` is a totally different function here that flattens
+        outlines; this function flattens nested collections into
+        one-dimensional collections"""
+        pens = []
+        for idx, p in enumerate(self.pens):
+            if hasattr(p, "pens") and levels > 0:
+                pens.extend(p.collapse(levels=levels-1).pens)
+            else:
+                pens.append(p)
+        dps = self.multi_pen_class(pens)
+        if self.layered:
+            dps.layered = True
+        if onself:
+            self.pens = dps.pens
+            return self
+        else:
+            return dps
+    
+    flatten = collapse # deprecated but used in the wild
+    
+    def frameSet(self, th=False, tv=False):
+        """All the frames of all the pens"""
+        if self._frame:
+            return super().frameSet(th=th, tv=tv)
+        dps = self.multi_pen_class()
+        for p in self.pens:
+            if p._frame:
+                dps.append(p.frameSet(th=th, tv=tv))
+        return dps
