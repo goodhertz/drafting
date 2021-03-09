@@ -19,6 +19,10 @@ from drafting.sh import SH_UNARY_SUFFIX_PROPS, sh, SHContext
 
 from drafting.pens.misc import BooleanOp, calculate_pathop, ExplodingPen, SmoothPointsPen
 
+from drafting.pens.outlinepen import OutlinePen
+from drafting.pens.translationpen import TranslationPen, polarCoord
+
+from drafting.beziers import CurveCutter, splitCubicAtT
 
 class DraftingPen(RecordingPen, SHContext):
     """Fluent subclass of RecordingPen"""
@@ -1053,3 +1057,165 @@ class DraftingPen(RecordingPen, SHContext):
                             yield _p
                 else:
                     yield pen
+    
+    # Fun pen manipulations
+
+    def outline(self, offset=1, drawInner=True, drawOuter=True, cap="square"):
+        """AKA expandStroke"""
+        op = OutlinePen(None, offset=offset, optimizeCurve=True, cap=cap)
+        self.replay(op)
+        op.drawSettings(drawInner=drawInner, drawOuter=drawOuter)
+        g = op.getGlyph()
+        p = self.single_pen_class()
+        g.draw(p)
+        self.value = p.value
+        return self
+    
+    ol = outline
+    
+    def project(self, angle, width):
+        offset = polarCoord((0, 0), math.radians(angle), width)
+        self.translate(offset[0], offset[1])
+        return self
+
+    def castshadow(self, angle=-45, width=100, ro=1, fill=1):
+        out = self.single_pen_class()
+        tp = TranslationPen(out, frontAngle=angle, frontWidth=width)
+        self.replay(tp)
+        if fill:
+            out.record(self.copy().project(angle, width))
+        if ro:
+            out.removeOverlap()
+        self.value = out.value
+        return self
+
+    def grow(self, outline=10):
+        out = self.copy().outline(outline)
+        return self.record(out.reverse())
+    
+    # Some curvy/bendy things
+
+    def subsegment(self, start=0, end=1):
+        """Return a subsegment of the pen based on `t` values `start` and `end`"""
+        cc = CurveCutter(self)
+        start = 0
+        end = end * cc.calcCurveLength()
+        pv = cc.subsegment(start, end)
+        self.value = pv
+        return self
+    
+    def point_t(self, t=0.5):
+        """Get point value for time `t`"""
+        cc = CurveCutter(self)
+        start = 0
+        tv = t * cc.calcCurveLength()
+        p, tangent = cc.subsegmentPoint(start=0, end=tv)
+        return p, tangent
+    
+    def split_t(self, t=0.5):
+        a = self.value[0][-1][0]
+        b, c, d = self.value[-1][-1]
+        return splitCubicAtT(a, b, c, d, t)
+    
+    def length(self, t=1):
+        """Get the length of the curve for time `t`"""
+        cc = CurveCutter(self)
+        start = 0
+        tv = t * cc.calcCurveLength()
+        return tv
+
+    def bend(self, curve, tangent=True):
+        cc = CurveCutter(curve)
+        ccl = cc.length
+        dpl = self.bounds().point("SE").x
+        xf = ccl/dpl
+        def bender(x, y):
+            p, tan = cc.subsegmentPoint(end=x*xf)
+            px, py = p
+            if tangent:
+                a = math.sin(math.radians(180+tan)) * y
+                b = math.cos(math.radians(180+tan)) * y
+                return (px+a, py+b)
+                #return (px, y+py)
+            else:
+                return (px, y+py)
+        return self.nonlinear_transform(bender)
+    
+    def bend2(self, curve, tangent=True, offset=(0, 1)):
+        bw = self.bounds().w
+        a = curve.value[0][-1][0]
+        b, c, d = curve.value[1][-1]
+        def bender(x, y):
+            c1, c2 = splitCubicAtT(a, b, c, d, offset[0] + (x/bw)*offset[1])
+            _, _a, _b, _c = c1
+            if tangent:
+                tan = math.degrees(math.atan2(_c[1] - _b[1], _c[0] - _b[0]) + math.pi*.5)
+                ax = math.sin(math.radians(90-tan)) * y
+                by = math.cos(math.radians(90-tan)) * y
+                return _c[0]+ax, (y+_c[1])+by
+            return _c[0], y+_c[1]
+        return self.nonlinear_transform(bender)
+    
+    def nonlinear_transform(self, fn):
+        for idx, (move, pts) in enumerate(self.value):
+            if len(pts) > 0:
+                _pts = []
+                for _pt in pts:
+                    x, y = _pt
+                    _pts.append(fn(x, y))
+                self.value[idx] = (move, _pts)
+        return self
+    
+    nlt = nonlinear_transform
+    
+    def bend3(self, curve, tangent=False, offset=(0, 1)):
+        a = curve.value[0][-1][0]
+        b, c, d = curve.value[1][-1]
+        bh = self.bounds().h
+        
+        def bender(x, y):
+            c1, c2 = splitCubicAtT(a, b, c, d, offset[0] + (y/bh)*offset[1])
+            _, _a, _b, _c = c1
+            if tangent:
+                tan = math.degrees(math.atan2(_c[1] - _b[1], _c[0] - _b[0]) + math.pi*.5)
+                ax = math.sin(math.radians(90-tan)) * y
+                by = math.cos(math.radians(90-tan)) * y
+                return x+_c[0]+ax, (y+_c[1])+by
+            return x+_c[0], _c[1]
+        return self.nonlinear_transform(bender)
+        
+    def distribute_on_path(self, path, offset=0, cc=None, notfound=None, center=False):
+        if cc:
+            cutter = cc
+        else:
+            cutter = CurveCutter(path)
+        if center is not False:
+            offset = (cutter.length-self.bounds().w)/2 + center
+        limit = len(self.pens)
+        for idx, p in enumerate(self.pens):
+            f = p.getFrame()
+            bs = f.y
+            ow = offset + f.x + f.w / 2
+            #if ow < 0:
+            #    if notfound:
+            #        notfound(p)
+            if ow > cutter.length:
+                limit = min(idx, limit)
+            else:
+                _p, tangent = cutter.subsegmentPoint(end=ow)
+                x_shift = bs * math.cos(math.radians(tangent))
+                y_shift = bs * math.sin(math.radians(tangent))
+                t = Transform()
+                t = t.translate(_p[0] + x_shift - f.x, _p[1] + y_shift - f.y)
+                t = t.translate(f.x, f.y)
+                t = t.rotate(math.radians(tangent-90))
+                t = t.translate(-f.x, -f.y)
+                t = t.translate(-f.w*0.5)
+                p.transform(t)
+
+        if limit < len(self.pens):
+            self.pens = self.pens[0:limit]
+        return self
+    
+    # deprecated
+    distributeOnPath = distribute_on_path

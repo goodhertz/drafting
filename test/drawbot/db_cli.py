@@ -1,12 +1,16 @@
+from random import random
 from drafting.drawbot import *
 from drafting.text.reader import StyledString, Style, Font
 
 mistral = Font.Cacheable("~/Type/fonts/fonts/_script/MistralD.otf")
 
-with new_drawing("letter", save_to="test/drawbot/hello.pdf") as (idx, rect):
-    s = (StyledString("Hello",
-        Style(mistral, 300))
-        .pen()
-        .f(hsl(0.9, s=1))
-        .align(rect)
-        .chain(dbdraw))
+save = "test/drawbot/hello.pdf"
+with new_drawing("letter", save_to=save) as (idx, r):
+    s = (StyledString("Hello", Style(mistral, 300))
+        .pens()
+        .f(hsl(random(), s=1))
+        .align(r))
+
+    db.fill(*hsl(random(), l=0.3))
+    db.rect(*s.ambit())
+    s.chain(dbdraw)

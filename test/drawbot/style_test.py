@@ -14,8 +14,10 @@ s = (StyledString("Hello",
     Style(mistral, 300))
     .pen()
     .f(hsl(0.9, s=1))
-    .align(r)
-    .chain(dbdraw))
+    .align(r))
+
+db.rect(*s.ambit())
+s.chain(dbdraw)
 
 db.fontSize(24)
 db.text("Mistral", s.ambit().inset(0, -50).ps, align="center")

@@ -108,7 +108,7 @@ class DraftingPens(DraftingPen):
                 return Rect(0,0,0,0)
     
     def bounds(self):
-        """Calculated bounds of a DATPens"""
+        """Calculated bounds of a DraftingPens"""
         return self.ambit(th=1, tv=1)
     
     def gs(self, s, fn=None, tag=None, writer=None):
@@ -177,7 +177,7 @@ class DraftingPens(DraftingPen):
         if len(fps.pens) > 0:
             for k, attrs in fps.pens[0].attrs.items():
                 dp.attr(tag=k, **attrs)
-        dp.frame(self.frame())
+        dp.frame(self.ambit())
         return dp
     
     def collapse(self, levels=100, onself=False):
@@ -257,3 +257,71 @@ class DraftingPens(DraftingPen):
         for p in self.pens:
             p.round_to(rounding)
         return self
+    
+    def xa(self, x="centerx"):
+        for pen in self:
+            pen.xAlignToFrame(x)
+        return self
+    
+    def distribute(self, v=False):
+        off = 0
+        for p in self:
+            frame = p.ambit()
+            if v:
+                if frame.y < 0:
+                    p.translate(0, -frame.y)
+                p.translate(0, off)
+                off += frame.h
+            else:
+                if frame.x < 0:
+                    p.translate(-frame.x, 0)
+                p.translate(off, 0)
+                off += frame.w
+        return self
+    
+    def track(self, t, v=False):
+        for idx, p in enumerate(self.pens):
+            frame = p.ambit()
+            if v:
+                p.translate(0, t*idx)
+            else:
+                p.translate(t*idx, 0)
+        return self
+    
+    def interleave(self, style_fn, direction=-1, recursive=True):
+        """Provide a callback-lambda to interleave new DATPens between the existing ones; useful for stroke-ing glyphs, since the stroked glyphs can be placed behind the primary filled glyphs."""
+        pens = []
+        for idx, p in enumerate(self.pens):
+            if recursive and hasattr(p, "pens"):
+                _p = p.interleave(style_fn, direction=direction, recursive=True)
+                pens.append(_p)
+            else:
+                try:
+                    np = style_fn(idx, p.copy())
+                except TypeError:
+                    np = style_fn(p.copy())
+                if isinstance(np, self.single_pen_class):
+                    np = [np]
+                if direction < 0:
+                    pens.extend(np)
+                pens.append(p)
+                if direction > 0:
+                    pens.extend(np)
+
+        self.pens = pens
+        return self
+    
+    def understroke(self, s=0, sw=5, outline=False, dofill=0):
+        if sw == 0:
+            return self
+        if not outline:
+            return self.interleave(lambda idx, p: p.f(s).s(s).sw(sw))
+        else:
+            def mod(idx, p):
+                if dofill:
+                    pf = p.copy()
+                p.f(s).outline(sw*2)
+                if dofill:
+                    p.reverse().record(pf)
+                return p
+            return self.interleave(mod)
