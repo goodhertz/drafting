@@ -543,6 +543,11 @@ class DraftingPen(RecordingPen, SHContext):
     def offset_y(self, y):
         return self.translate(0, y)
     
+    def zero_translate(self, th=1, tv=0):
+        x, y, _, _ = self.ambit(th=th, tv=tv)
+        self.translate(-x, -y)
+        return self
+    
     def skew(self, x=0, y=0, point=None):
         t = Transform()
         if not point:
