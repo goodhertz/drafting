@@ -18,3 +18,6 @@ All formerly part of [Coldtype](https://coldtype.goodhertz.com), but broken out 
 
 * ``drafting.text`` relies heavily (via FontGoggles) on the incredible `HarfBuzz <https://github.com/harfbuzz/harfbuzz>`_ text shaping library.
 
+* ``drafting.pens.outlinepen`` contains code written by Frederik Berlaen, Copyright (c) 2016
+
+* ``drafting.pens.translationpen`` contains code written by Loïc Sander, Copyright (c) 2014
