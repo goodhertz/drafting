@@ -456,15 +456,32 @@ class DraftingPen(RecordingPen, SHContext):
         return self
     
     def copy(self, with_data=False):
-        dp = type(self)(self)
+        dp = self.single_pen_class()
+        self.replay(dp)
+        for tag, attrs in self.attrs.items():
+            dp.attr(tag, **attrs)
+        
+        dp.glyphName = self.glyphName
+        dp.defs = self.defs
+
         if with_data:
-            dp._frame = self._frame
-            dp.defs = self.defs # necessary to copy this and not pass by ref?
+            dp.data = self.data
+            if dp._frame:
+                dp._frame = self._frame
             if hasattr(self, "macros"):
                 dp.macros = self.macros
-        else:
-            dp.defs = self.defs
+            if self.typographic:
+                dp.typographic = True
         return dp
+    
+    # def copy(self, with_data=False):
+    #     """Make a totally fresh copy; useful given the DATPen’s general reliance on mutable state."""
+    #     dp = type(self)(self)
+    #     if with_data:
+            
+    #     else:
+            
+    #     return dp
     
     def cast(self, _class, *args):
         """Quickly cast to a (different) subclass."""
@@ -871,7 +888,9 @@ class DraftingPen(RecordingPen, SHContext):
         For simple take-one callback functions in a chain
         """
         if fn:
-            fn(self, *args)
+            res = fn(self, *args)
+            if isinstance(res, DraftingPen):
+                return res
         return self
     
     def replace(self, fn:Callable[["DraftingPen"], None], *args):

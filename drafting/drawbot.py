@@ -4,13 +4,15 @@ from drafting.geometry import Point, Line, Rect
 from drafting.pens.drawbotpen import DrawBotPen, DrawBotPens
 from drafting.pens.draftingpen import DraftingPen
 from drafting.pens.draftingpens import DraftingPens
+from drafting.text.reader import StyledString, Style, Font
 from drafting.color import hsl, bw
+from pathlib import Path
 
 def dbdraw(p:DraftingPen):
     if isinstance(p, DraftingPens):
-        p.cast(DrawBotPens).draw()
+        return p.cast(DrawBotPens).draw()
     else:
-        p.cast(DrawBotPen).draw()
+        return p.cast(DrawBotPen).draw()
 
 def page_rect() -> Rect:
     return Rect(db.width(), db.height())
