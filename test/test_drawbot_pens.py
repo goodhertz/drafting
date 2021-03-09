@@ -59,12 +59,20 @@ class TestDrawbotPens(unittest.TestCase):
                 .f(hsl(0.3, s=1))
                 .align(r)
                 .chain(dbdraw))
+            
+            with db.savedState():
+                db.fill(None)
+                db.stroke(0)
+                db.strokeWidth(1)
+                db.rect(*s.ambit())
         
             circle = DraftingPen().oval(r.inset(200)).reverse().rotate(0)
-            (s.copy()
+            s2 = (s.copy()
                 .zero_translate()
                 .distribute_on_path(circle)
                 .chain(dbdraw))
+            
+            self.assertEqual(s.f(), s2.f())
 
 
 if __name__ == "__main__":

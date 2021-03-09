@@ -18,7 +18,7 @@ def page_rect() -> Rect:
     return Rect(db.width(), db.height())
 
 @contextlib.contextmanager
-def new_page(r:Rect):
+def new_page(r:Rect=Rect(1000, 1000)):
     _r = Rect(r)
     db.newPage(*_r.wh())
     yield _r
