@@ -8,7 +8,7 @@ Color and geometric primitives
 
 setuptools.setup(
     name="drafting",
-    version="0.0.3",
+    version="0.1.0",
     author="Rob Stenson / Goodhertz",
     author_email="rob@goodhertz.com",
     description="Color and geometric primitives",
@@ -20,15 +20,27 @@ setuptools.setup(
         "drafting.sh",
         "drafting.grid",
         "drafting.pens",
+        "drafting.text",
         "drafting.color",
+        "drafting.drawbot",
+        "drafting.beziers",
         "drafting.geometry",
-        "drafting.interpolation"
+        "drafting.fontgoggles",
+        "drafting.interpolation",
+        "drafting.fontgoggles.font",
+        "drafting.fontgoggles.misc",
+        "drafting.fontgoggles.compile",
     ],
     install_requires=[
         "fontPens",
-        "fonttools",
+        "fonttools[ufo,lxml,unicode,woff,type1]==4.21.1",
         "more-itertools",
         "skia-pathops",
+        "freetype-py",
+        "uharfbuzz==0.14.0",
+        "python-bidi",
+        "ufo2ft",
+        "unicodedata2",
     ],
     classifiers=[
         "Programming Language :: Python :: 3",

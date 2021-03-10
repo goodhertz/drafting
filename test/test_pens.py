@@ -4,7 +4,7 @@ from drafting.pens.draftingpen import DraftingPen
 from drafting.pens.draftingpens import DraftingPens
 
 class TestDraftingPens(unittest.TestCase):
-    def test_test(self):
+    def test_gs(self):
         r = Rect(0, 0, 100, 100)
         dps = DraftingPens()
         dp = (DraftingPen()
@@ -18,6 +18,28 @@ class TestDraftingPens(unittest.TestCase):
         self.assertEqual(len(dps.tree().splitlines()), 3)
         self.assertEqual(dps.tree().splitlines()[-1],
             " | | DraftingPen<4mvs:end/>")
+        
+    def test_gs_arrowcluster(self):
+        r = Rect(100, 100)
+        dp = (DraftingPen()
+            .define(r=r)
+            .gs("$r↖↗↘"))
+        
+        self.assertEqual(len(dp.value), 4)
+        self.assertEqual(dp.value[0][-1][0], Point(0, 100))
+        self.assertEqual(dp.value[1][-1][0], Point(100, 100))
+        self.assertEqual(dp.value[2][-1][0], Point(100, 0))
+    
+    def test_gs_relative_moves(self):
+        r = Rect(100, 100)
+        dp = (DraftingPen()
+            .define(r=r)
+            .gs("$r↖ ¬OX50OY-50 §OY-50"))
+        
+        self.assertEqual(len(dp.value), 4)
+        self.assertEqual(dp.value[0][-1][0], Point(0, 100))
+        self.assertEqual(dp.value[1][-1][0], Point(50, 50))
+        self.assertEqual(dp.value[2][-1][0], Point(0, 50))
     
     def test_gss(self):
         """
@@ -78,6 +100,21 @@ class TestDraftingPens(unittest.TestCase):
         self.assertEqual(len(dps), 2)
         dps.remove_blanks()
         self.assertEqual(len(dps), 1)
+    
+    def test_collapse(self):
+        dps = DraftingPens([
+            DraftingPens([DraftingPens([DraftingPen()])]),
+            DraftingPens([DraftingPen()]),
+        ])
+
+        dps.collapse() # should not mutate by default
+        self.assertIsInstance(dps[0], DraftingPens)
+        self.assertIsInstance(dps[0][0], DraftingPens)
+
+        dps.collapse(onself=True) # now it should mutate
+        self.assertEqual(len(dps), 2)
+        self.assertNotIsInstance(dps[0], DraftingPens)
+        self.assertNotIsInstance(dps[1], DraftingPens)
 
 if __name__ == "__main__":
     unittest.main()

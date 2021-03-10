@@ -2,7 +2,7 @@ import sys, os
 sys.path.insert(0, "/Users/robstenson/Goodhertz/drafting")
 
 from random import random
-from drafting.pens.drawbotpen import DraftingPen, DrawBotPen, hsl, Rect
+from drafting.drawbot import *
 
 dp = (DraftingPen()
     .define(r=Rect(100, 100), c=75)

@@ -2,7 +2,7 @@ import enum
 import math, re
 
 from time import sleep
-from typing import Callable, Optional
+from typing import Callable, Optional, Tuple
 from collections import OrderedDict
 from copy import deepcopy
 
@@ -19,6 +19,12 @@ from drafting.sh import SH_UNARY_SUFFIX_PROPS, sh, SHContext
 
 from drafting.pens.misc import BooleanOp, calculate_pathop, ExplodingPen, SmoothPointsPen
 
+from drafting.pens.outlinepen import OutlinePen
+from drafting.pens.translationpen import TranslationPen, polarCoord
+
+from drafting.beziers import CurveCutter, splitCubicAtT
+
+from drafting.interpolation import norm
 
 class DraftingPen(RecordingPen, SHContext):
     """Fluent subclass of RecordingPen"""
@@ -37,6 +43,9 @@ class DraftingPen(RecordingPen, SHContext):
         self._visible = True
         self._parent = None
         self._last = None
+
+        self._typographic = False
+        self.glyphName = None
 
         self._current_attr_tag = "default"
         self.clearAttrs()
@@ -60,13 +69,16 @@ class DraftingPen(RecordingPen, SHContext):
         s = f"{type(self).__name__}<"
         if self._tag:
             s += self._tag + ":"
-        s += f"{len(self.value)}mvs:"
-        if self.value[-1][0] == "closePath":
-            s += "closed"
-        elif self.value[-1][0] == "endPath":
-            s += "end"
+        if len(self.value) == 0:
+            s += "(((empty)))"
         else:
-            s += "open"
+            s += f"{len(self.value)}mvs:"
+            if self.value[-1][0] == "closePath":
+                s += "closed"
+            elif self.value[-1][0] == "endPath":
+                s += "end"
+            else:
+                s += "open"
         s += "/>"
         return s
     
@@ -123,6 +135,13 @@ class DraftingPen(RecordingPen, SHContext):
                 return self._frame
         else:
             return self.bounds()
+    
+    def addFrame(self, frame, typographic=False, passthru=False):
+        """Add a new frame to the DATPen, replacing any old frame. Passthru ignored, there for compatibility"""
+        self._frame = frame
+        if typographic:
+            self.typographic = True
+        return self
     
     def unended(self):
         if len(self.value) == 0:
@@ -283,7 +302,7 @@ class DraftingPen(RecordingPen, SHContext):
         if hasattr(pen, "pens"):
             for p in pen:
                 self.record(p)
-        if pen:
+        elif pen:
             pen.replay(self)
         return self
     
@@ -439,14 +458,22 @@ class DraftingPen(RecordingPen, SHContext):
         return self
     
     def copy(self, with_data=False):
-        dp = type(self)(self)
+        dp = self.single_pen_class()
+        self.replay(dp)
+        for tag, attrs in self.attrs.items():
+            dp.attr(tag, **attrs)
+        
+        dp.glyphName = self.glyphName
+        dp.defs = self.defs
+
         if with_data:
-            dp._frame = self._frame
-            dp.defs = self.defs # necessary to copy this and not pass by ref?
+            dp.data = self.data
+            if dp._frame:
+                dp._frame = self._frame
             if hasattr(self, "macros"):
                 dp.macros = self.macros
-        else:
-            dp.defs = self.defs
+            if self.typographic:
+                dp.typographic = True
         return dp
     
     def cast(self, _class, *args):
@@ -529,6 +556,14 @@ class DraftingPen(RecordingPen, SHContext):
     
     def offset_y(self, y):
         return self.translate(0, y)
+    
+    def zero_translate(self, th=1, tv=0):
+        x, y, _, _ = self.ambit(th=th, tv=tv)
+        self.translate(-x, -y)
+        return self
+    
+    def center_on_point(self, rect, pt, interp=1):
+        return self.translate(norm(interp, 0, rect.w/2-pt[0]), norm(interp, 0, rect.h/2-pt[1]))
     
     def skew(self, x=0, y=0, point=None):
         t = Transform()
@@ -635,7 +670,89 @@ class DraftingPen(RecordingPen, SHContext):
             self.repeat(times-1)
         return self
     
+    # Iteration-manipulation
+    
+    def take(self, slice):
+        self.value = self.value[slice]
+        return self
+
+    def ups(self):
+        "Convert this single pen into a collection of pens, with one-pen in the collection (this pen)"
+        dps = self.multi_pen_class()
+        dps.append(self.copy())
+        return dps
+    
+    def collapse(self, levels=100, onself=False):
+        return self.multi_pen_class([self])
+    
+    def mod_pt(self, vidx, pidx, fn):
+        pt = Point(self.value[vidx][-1][pidx])
+        if callable(fn):
+            res = fn(pt)
+        else:
+            res = pt.offset(*fn)
+        try:
+            self.value[vidx][-1][pidx] = res
+        except TypeError:
+            self.pvl()
+            self.value[vidx][-1][pidx] = res
+        return self
+    
+    def mod_pts(self, rect, fn):
+        self.map_points(fn, lambda p: p.inside(rect))
+        return self
+    
+    # Contour manipulation
+
+    def mod_contour(self, contour_index, mod_fn):
+        exploded = self.explode()
+        mod_fn(exploded[contour_index])
+        self.value = exploded.implode().value
+        return self
+    
+    def filter_contours(self, filter_fn):
+        exploded = self.explode()
+        keep = []
+        for idx, c in enumerate(exploded):
+            if filter_fn(idx, c):
+                keep.append(c)
+        self.value = self.multi_pen_class(keep).implode().value
+        return self
+    
+    def slicec(self, contour_slice):
+        self.value = self.multi_pen_class(self.explode()[contour_slice]).implode().value
+        return self
+    
     # Iterating
+
+    def map(self, fn:Callable[[int, str, list], Tuple[str, list]]):
+        for idx, (mv, pts) in enumerate(self.value):
+            self.value[idx] = fn(idx, mv, pts)
+        return self
+    
+    def filter(self, fn:Callable[[int, str, list], bool]):
+        vs = []
+        for idx, (mv, pts) in enumerate(self.value):
+            if fn(idx, mv, pts):
+                vs.append((mv, pts))
+        self.value = vs
+        return self
+    
+    def map_points(self, fn, filter_fn=None):
+        idx = 0
+        for cidx, c in enumerate(self.value):
+            move, pts = c
+            pts = list(pts)
+            for pidx, p in enumerate(pts):
+                x, y = p
+                if filter_fn and not filter_fn(p):
+                    continue
+                result = fn(idx, x, y)
+                if result:
+                    pts[pidx] = result
+                idx += 1
+            self.value[cidx] = (move, pts)
+        return self
     
     def walk(self, callback:Callable[["DraftingPen", int, dict], None], depth=0, visible_only=False, parent=None):
         if visible_only and not self._visible:
@@ -693,13 +810,16 @@ class DraftingPen(RecordingPen, SHContext):
         max_ang = max([l.ang for l in lines])
         #for idx, l in enumerate(lines):
         #    print(idx, ">", l.ang, min_ang, max_ang)
-        xs = [l for l in lines if math.isclose(l.ang, min_ang)]
-        ys = [l for l in lines if math.isclose(l.ang, max_ang)]
+        xs = [l for l in lines if l.ang < 0.25 or l.ang > 2.5]
+        ys = [l for l in lines if 1 < l.ang < 2]
 
         if len(ys) == 2 and len(xs) < 2:
             xs = [l for l in lines if l not in ys]
         elif len(ys) < 2 and len(xs) == 2:
             ys = [l for l in lines if l not in xs]
+        
+        #for l in ys:
+        #    print(l.ang)
 
         #print(len(xs), len(ys))
         #print("--------------------")
@@ -819,6 +939,10 @@ class DraftingPen(RecordingPen, SHContext):
     def define(self, *args, **kwargs):
         return self.context_record("$", "defs", None, *args, **kwargs)
     
+    def declare(self, *whatever):
+        # TODO do something with what's declared somehow?
+        return self
+    
     def macro(self, **kwargs):
         for k, v in kwargs.items():
             self.macros[k] = v
@@ -846,7 +970,9 @@ class DraftingPen(RecordingPen, SHContext):
         For simple take-one callback functions in a chain
         """
         if fn:
-            fn(self, *args)
+            res = fn(self, *args)
+            if isinstance(res, DraftingPen):
+                return res
         return self
     
     def replace(self, fn:Callable[["DraftingPen"], None], *args):
@@ -1032,3 +1158,167 @@ class DraftingPen(RecordingPen, SHContext):
                             yield _p
                 else:
                     yield pen
+    
+    # Fun pen manipulations
+
+    def outline(self, offset=1, drawInner=True, drawOuter=True, cap="square"):
+        """AKA expandStroke"""
+        op = OutlinePen(None, offset=offset, optimizeCurve=True, cap=cap)
+        self.replay(op)
+        op.drawSettings(drawInner=drawInner, drawOuter=drawOuter)
+        g = op.getGlyph()
+        p = self.single_pen_class()
+        g.draw(p)
+        self.value = p.value
+        return self
+    
+    ol = outline
+    
+    def project(self, angle, width):
+        offset = polarCoord((0, 0), math.radians(angle), width)
+        self.translate(offset[0], offset[1])
+        return self
+
+    def castshadow(self, angle=-45, width=100, ro=1, fill=1):
+        out = self.single_pen_class()
+        tp = TranslationPen(out, frontAngle=angle, frontWidth=width)
+        self.replay(tp)
+        if fill:
+            out.record(self.copy().project(angle, width))
+        if ro:
+            out.removeOverlap()
+        self.value = out.value
+        return self
+
+    def grow(self, outline=10):
+        out = self.copy().outline(outline)
+        return self.record(out.reverse())
+    
+    def gridlines(self, rect, x=20, y=None, absolute=False):
+        """Construct a grid in the pen using `x` and (optionally) `y` subdivisions"""
+        xarg = x
+        yarg = y or x
+        if absolute:
+            x = int(rect.w / xarg)
+            y = int(rect.h / yarg)
+        else:
+            x = xarg
+            y = yarg
+        
+        for _x in rect.subdivide(x, "minx"):
+            if _x.x > 0 and _x.x > rect.x:
+                self.line([_x.point("NW"), _x.point("SW")])
+        for _y in rect.subdivide(y, "miny"):
+            if _y.y > 0 and _y.y > rect.y:
+                self.line([_y.point("SW"), _y.point("SE")])
+        return self.f(None).s(0, 0.1).sw(3)
+    
+    # Some curvy/bendy things
+
+    def subsegment(self, start=0, end=1):
+        """Return a subsegment of the pen based on `t` values `start` and `end`"""
+        cc = CurveCutter(self)
+        start = 0
+        end = end * cc.calcCurveLength()
+        pv = cc.subsegment(start, end)
+        self.value = pv
+        return self
+    
+    def point_t(self, t=0.5):
+        """Get point value for time `t`"""
+        cc = CurveCutter(self)
+        start = 0
+        tv = t * cc.calcCurveLength()
+        p, tangent = cc.subsegmentPoint(start=0, end=tv)
+        return p, tangent
+    
+    def split_t(self, t=0.5):
+        a = self.value[0][-1][0]
+        b, c, d = self.value[-1][-1]
+        return splitCubicAtT(a, b, c, d, t)
+    
+    def add_pt_t(self, cuidx, t):
+        cidx = 0
+        insert_idx = -1
+        c1, c2 = None, None
+
+        for idx, (mv, pts) in enumerate(self.value):
+            if mv == "curveTo":
+                if cidx == cuidx:
+                    insert_idx = idx
+                    a = self.value[idx-1][-1][-1]
+                    b, c, d = pts
+                    c1, c2 = splitCubicAtT(a, b, c, d, t)
+                cidx += 1
+        
+        if c2:
+            self.value[insert_idx] = ("curveTo", c1[1:])
+            self.value.insert(insert_idx+1, ("curveTo", c2[1:]))
+        return self
+    
+    def length(self, t=1):
+        """Get the length of the curve for time `t`"""
+        cc = CurveCutter(self)
+        start = 0
+        tv = t * cc.calcCurveLength()
+        return tv
+
+    def bend(self, curve, tangent=True):
+        cc = CurveCutter(curve)
+        ccl = cc.length
+        dpl = self.bounds().point("SE").x
+        xf = ccl/dpl
+        def bender(x, y):
+            p, tan = cc.subsegmentPoint(end=x*xf)
+            px, py = p
+            if tangent:
+                a = math.sin(math.radians(180+tan)) * y
+                b = math.cos(math.radians(180+tan)) * y
+                return (px+a, py+b)
+                #return (px, y+py)
+            else:
+                return (px, y+py)
+        return self.nonlinear_transform(bender)
+    
+    def bend2(self, curve, tangent=True, offset=(0, 1)):
+        bw = self.bounds().w
+        a = curve.value[0][-1][0]
+        b, c, d = curve.value[1][-1]
+        def bender(x, y):
+            c1, c2 = splitCubicAtT(a, b, c, d, offset[0] + (x/bw)*offset[1])
+            _, _a, _b, _c = c1
+            if tangent:
+                tan = math.degrees(math.atan2(_c[1] - _b[1], _c[0] - _b[0]) + math.pi*.5)
+                ax = math.sin(math.radians(90-tan)) * y
+                by = math.cos(math.radians(90-tan)) * y
+                return _c[0]+ax, (y+_c[1])+by
+            return _c[0], y+_c[1]
+        return self.nonlinear_transform(bender)
+    
+    def nonlinear_transform(self, fn):
+        for idx, (move, pts) in enumerate(self.value):
+            if len(pts) > 0:
+                _pts = []
+                for _pt in pts:
+                    x, y = _pt
+                    _pts.append(fn(x, y))
+                self.value[idx] = (move, _pts)
+        return self
+    
+    nlt = nonlinear_transform
+    
+    def bend3(self, curve, tangent=False, offset=(0, 1)):
+        a = curve.value[0][-1][0]
+        b, c, d = curve.value[1][-1]
+        bh = self.bounds().h
+        
+        def bender(x, y):
+            c1, c2 = splitCubicAtT(a, b, c, d, offset[0] + (y/bh)*offset[1])
+            _, _a, _b, _c = c1
+            if tangent:
+                tan = math.degrees(math.atan2(_c[1] - _b[1], _c[0] - _b[0]) + math.pi*.5)
+                ax = math.sin(math.radians(90-tan)) * y
+                by = math.cos(math.radians(90-tan)) * y
+                return x+_c[0]+ax, (y+_c[1])+by
+            return x+_c[0], _c[1]
+        return self.nonlinear_transform(bender)
