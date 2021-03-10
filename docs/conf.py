@@ -36,7 +36,8 @@ extensions = [
     'sphinx.ext.napoleon',
 ]
 
-autosummary_generate = False
+autosummary_generate = True
+autosummary_generate_overwrite = False
 add_module_names = False
 
 # Add any paths that contain templates here, relative to this directory.

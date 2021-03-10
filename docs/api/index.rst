@@ -3,6 +3,17 @@ API
 
 **Work in progress**
 
+.. rubric:: Geometry
+
+.. autosummary::
+    :toctree: reference
+    :template: module.rst
+
+    drafting.geometry.Point
+    drafting.geometry.Line
+    drafting.geometry.Curve
+    drafting.geometry.Rect
+
 .. rubric:: Textsetting Classes
 
 .. autosummary::

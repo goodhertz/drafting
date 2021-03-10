@@ -1,7 +1,7 @@
 drafting
 ========
 
-`drafting` is a cross-platform python library for vectors, simple geometry, and using vectors and geometry for typesetting.
+`drafting` is a cross-platform python library for vectors, simple geometry, and display typography. `drafting` itself has no rendering engine, but is designed to be used (primarily) with `Coldtype <https://coldtype.goodhertz.com>`_, but can be used with DrawBot, Blender, and AxiDraw drawing machines.
 
 🌋 **Disclaimer**: `drafting` is alpha-quality software 🌋
 
