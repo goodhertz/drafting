@@ -48,7 +48,7 @@ class TestDrawbotPens(unittest.TestCase):
                 .sw(5)
                 .chain(dbdraw))
             self.assertEqual(len(dp.value), 4)
-            self.assertEqual(type(dp), DrawBotPen)
+            self.assertEqual(type(dp), DraftingPen)
 
     def test_distribute_on_path(self):
         mistral = Font.Cacheable("~/Type/fonts/fonts/_script/MistralD.otf")

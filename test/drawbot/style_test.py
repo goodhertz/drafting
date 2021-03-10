@@ -21,7 +21,10 @@ with new_page() as r:
 
     s.chain(dbdraw)
 
-    circle = DraftingPen().oval(r.inset(200)).reverse().rotate(0)
+    circle = (DraftingPen()
+        .oval(r.inset(200))
+        .reverse()
+        .rotate(0))
     s2 = (s
         .copy()
         .zero_translate()

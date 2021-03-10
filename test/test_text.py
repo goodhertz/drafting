@@ -4,15 +4,13 @@ from drafting.geometry import *
 from drafting.text.reader import StyledString, Style
 
 class TestText(unittest.TestCase):
-    
-    def test_sh_context(self):
-        style = Style("~/Type/fonts/fonts/_script/MistralD.otf")
-        ss = StyledString("Hello World", style)
+    def test_glyph_name(self):
+        style = Style("assets/ColdtypeObviously-VF.ttf")
+        ss = StyledString("CDELOPTY", style)
         ssps = ss.pens()
-        self.assertEqual(len(ssps), 11)
-        print(ssps[0].glyphName)
-        #print(ssps.tree())
-        #print()
+        self.assertEqual(len(ssps), 8)
+        self.assertEqual(ssps[0].glyphName, "C")
+        self.assertEqual(ssps[-1].glyphName, "Y")
 
 if __name__ == "__main__":
     unittest.main()

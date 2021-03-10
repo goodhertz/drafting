@@ -476,15 +476,6 @@ class DraftingPen(RecordingPen, SHContext):
                 dp.typographic = True
         return dp
     
-    # def copy(self, with_data=False):
-    #     """Make a totally fresh copy; useful given the DATPen’s general reliance on mutable state."""
-    #     dp = type(self)(self)
-    #     if with_data:
-            
-    #     else:
-            
-    #     return dp
-    
     def cast(self, _class, *args):
         """Quickly cast to a (different) subclass."""
         res = _class(self, *args)
@@ -690,6 +681,9 @@ class DraftingPen(RecordingPen, SHContext):
         dps = self.multi_pen_class()
         dps.append(self.copy())
         return dps
+    
+    def collapse(self, levels=100, onself=False):
+        return self.multi_pen_class([self])
     
     def mod_pt(self, vidx, pidx, fn):
         pt = Point(self.value[vidx][-1][pidx])
