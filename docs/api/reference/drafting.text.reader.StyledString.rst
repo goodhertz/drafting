@@ -4,3 +4,4 @@
 .. currentmodule:: drafting.text.reader
 
 .. autoclass:: StyledString
+    :members:
