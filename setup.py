@@ -22,6 +22,8 @@ setuptools.setup(
         "drafting.pens",
         "drafting.text",
         "drafting.color",
+        "drafting.drawbot",
+        "drafting.beziers",
         "drafting.geometry",
         "drafting.fontgoggles",
         "drafting.interpolation",
