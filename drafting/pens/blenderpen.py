@@ -1,12 +1,13 @@
 from coldtype import *
 from drafting.geometry import Rect, Edge, Point
-from coldtype.beziers import CurveCutter, raise_quadratic
-from coldtype.pens.drawablepen import DrawablePenMixin
+from drafting.beziers import CurveCutter, raise_quadratic
+from drafting.pens.drawablepen import DrawablePenMixin
 from fontTools.pens.basePen import BasePen
 
 import math
 import random
 try:
+    # Blender-specific things
     import bpy
     from mathutils import Vector, Matrix
 except:

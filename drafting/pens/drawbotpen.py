@@ -113,3 +113,14 @@ class DrawBotPen(DrawablePenMixin, DraftingPen):
                     self.applyDATAttribute(attrs, attr)
                 db.drawPath(self.bp)
         return self
+    
+    def draw_with_filters(self, rect, filters):
+        im = db.ImageObject()
+        with im:
+            db.size(*rect.wh())
+            self.draw()
+        for filter_name, filter_kwargs in filters:
+            getattr(im, filter_name)(**filter_kwargs)
+        x, y = im.offset()
+        db.image(im, (x, y))
+        return self
