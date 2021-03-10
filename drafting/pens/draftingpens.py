@@ -306,12 +306,38 @@ class DraftingPens(DraftingPen):
         return self
     
     def track(self, t, v=False):
+        """Track-out/distribute elements"""
         for idx, p in enumerate(self.pens):
             frame = p.ambit()
             if v:
                 p.translate(0, t*idx)
             else:
                 p.translate(t*idx, 0)
+        return self
+    
+    def track_to_rect(self, rect, pullToEdges=False, r=0):
+        """Distribute pens evenly within a frame"""
+        if len(self) == 1:
+            return self.align(rect)
+        total_width = 0
+        pens = self.pens
+        if r:
+            pens = list(reversed(pens))
+        start_x = pens[0].ambit(th=pullToEdges).x
+        end_x = pens[-1].ambit(th=pullToEdges).point("SE").x
+        # TODO easy to knock out apostrophes here based on a callback, last "actual" frame
+        total_width = end_x - start_x
+        leftover_w = rect.w - total_width
+        tracking_value = leftover_w / (len(self)-1)
+        if pullToEdges:
+            xoffset = rect.x - pens[0].bounds().x
+        else:
+            xoffset = rect.x - pens[0].ambit().x
+        for idx, p in enumerate(pens):
+            if idx == 0:
+                p.translate(xoffset, 0)
+            else:
+                p.translate(xoffset+tracking_value*idx, 0)
         return self
     
     def interleave(self, style_fn, direction=-1, recursive=True):

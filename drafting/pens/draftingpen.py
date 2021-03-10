@@ -2,7 +2,7 @@ import enum
 import math, re
 
 from time import sleep
-from typing import Callable, Optional
+from typing import Callable, Optional, Tuple
 from collections import OrderedDict
 from copy import deepcopy
 
@@ -679,7 +679,86 @@ class DraftingPen(RecordingPen, SHContext):
             self.repeat(times-1)
         return self
     
+    # Iteration-manipulation
+    
+    def take(self, slice):
+        self.value = self.value[slice]
+        return self
+
+    def ups(self):
+        "Convert this single pen into a collection of pens, with one-pen in the collection (this pen)"
+        dps = self.multi_pen_class()
+        dps.append(self.copy())
+        return dps
+    
+    def mod_pt(self, vidx, pidx, fn):
+        pt = Point(self.value[vidx][-1][pidx])
+        if callable(fn):
+            res = fn(pt)
+        else:
+            res = pt.offset(*fn)
+        try:
+            self.value[vidx][-1][pidx] = res
+        except TypeError:
+            self.pvl()
+            self.value[vidx][-1][pidx] = res
+        return self
+    
+    def mod_pts(self, rect, fn):
+        self.map_points(fn, lambda p: p.inside(rect))
+        return self
+    
+    # Contour manipulation
+
+    def mod_contour(self, contour_index, mod_fn):
+        exploded = self.explode()
+        mod_fn(exploded[contour_index])
+        self.value = exploded.implode().value
+        return self
+    
+    def filter_contours(self, filter_fn):
+        exploded = self.explode()
+        keep = []
+        for idx, c in enumerate(exploded):
+            if filter_fn(idx, c):
+                keep.append(c)
+        self.value = self.multi_pen_class(keep).implode().value
+        return self
+    
+    def slicec(self, contour_slice):
+        self.value = self.multi_pen_class(self.explode()[contour_slice]).implode().value
+        return self
+    
     # Iterating
+
+    def map(self, fn:Callable[[int, str, list], Tuple[str, list]]):
+        for idx, (mv, pts) in enumerate(self.value):
+            self.value[idx] = fn(idx, mv, pts)
+        return self
+    
+    def filter(self, fn:Callable[[int, str, list], bool]):
+        vs = []
+        for idx, (mv, pts) in enumerate(self.value):
+            if fn(idx, mv, pts):
+                vs.append((mv, pts))
+        self.value = vs
+        return self
+    
+    def map_points(self, fn, filter_fn=None):
+        idx = 0
+        for cidx, c in enumerate(self.value):
+            move, pts = c
+            pts = list(pts)
+            for pidx, p in enumerate(pts):
+                x, y = p
+                if filter_fn and not filter_fn(p):
+                    continue
+                result = fn(idx, x, y)
+                if result:
+                    pts[pidx] = result
+                idx += 1
+            self.value[cidx] = (move, pts)
+        return self
     
     def walk(self, callback:Callable[["DraftingPen", int, dict], None], depth=0, visible_only=False, parent=None):
         if visible_only and not self._visible:
@@ -1121,6 +1200,25 @@ class DraftingPen(RecordingPen, SHContext):
         out = self.copy().outline(outline)
         return self.record(out.reverse())
     
+    def gridlines(self, rect, x=20, y=None, absolute=False):
+        """Construct a grid in the pen using `x` and (optionally) `y` subdivisions"""
+        xarg = x
+        yarg = y or x
+        if absolute:
+            x = int(rect.w / xarg)
+            y = int(rect.h / yarg)
+        else:
+            x = xarg
+            y = yarg
+        
+        for _x in rect.subdivide(x, "minx"):
+            if _x.x > 0 and _x.x > rect.x:
+                self.line([_x.point("NW"), _x.point("SW")])
+        for _y in rect.subdivide(y, "miny"):
+            if _y.y > 0 and _y.y > rect.y:
+                self.line([_y.point("SW"), _y.point("SE")])
+        return self.f(None).s(0, 0.1).sw(3)
+    
     # Some curvy/bendy things
 
     def subsegment(self, start=0, end=1):
@@ -1144,6 +1242,25 @@ class DraftingPen(RecordingPen, SHContext):
         a = self.value[0][-1][0]
         b, c, d = self.value[-1][-1]
         return splitCubicAtT(a, b, c, d, t)
+    
+    def add_pt_t(self, cuidx, t):
+        cidx = 0
+        insert_idx = -1
+        c1, c2 = None, None
+
+        for idx, (mv, pts) in enumerate(self.value):
+            if mv == "curveTo":
+                if cidx == cuidx:
+                    insert_idx = idx
+                    a = self.value[idx-1][-1][-1]
+                    b, c, d = pts
+                    c1, c2 = splitCubicAtT(a, b, c, d, t)
+                cidx += 1
+        
+        if c2:
+            self.value[insert_idx] = ("curveTo", c1[1:])
+            self.value.insert(insert_idx+1, ("curveTo", c2[1:]))
+        return self
     
     def length(self, t=1):
         """Get the length of the curve for time `t`"""
