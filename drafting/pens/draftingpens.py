@@ -17,6 +17,15 @@ class DraftingPens(DraftingPen):
         self.single_pen_class = DraftingPen
         self._in_progress_pen = None
 
+        self.typographic = True
+        self.layered = False
+        self.data = {}
+
+        self._alpha = 1
+        self._parent = None
+        self.container = None
+        self._visible = True
+
         self.subs = {
             "□": "ctx.bounds()",
             "■": "_dps.bounds()"
@@ -206,7 +215,9 @@ class DraftingPens(DraftingPen):
                 pens.extend(p.collapse(levels=levels-1).pens)
             else:
                 pens.append(p)
-        dps = type(self)(pens)
+        dps = self.multi_pen_class(self)(pens)
+        if self.layered:
+            dps.layered = True
         if onself:
             self.pens = dps.pens
             return self
@@ -502,9 +513,7 @@ class DraftingPens(DraftingPen):
     
     def collapse(self, levels=100, onself=False):
         """AKA `flatten` in some programming contexts, though
-        `flatten` is a totally different function here that flattens
-        outlines; this function flattens nested collections into
-        one-dimensional collections"""
+        `flatten` is a totally different function here that flattens outlines; this function flattens nested collections into one-dimensional collections"""
         pens = []
         for idx, p in enumerate(self.pens):
             if hasattr(p, "pens") and levels > 0:

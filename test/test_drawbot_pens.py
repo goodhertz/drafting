@@ -53,8 +53,8 @@ class TestDrawbotPens(unittest.TestCase):
     def test_distribute_on_path(self):
         mistral = Font.Cacheable("~/Type/fonts/fonts/_script/MistralD.otf")
 
-        with test_image(self, "test_distribute.png") as (i, r):
-            s = (StyledString("Hello", Style(mistral, 50))
+        with test_image(self, "test_distribute.png", Rect(1000, 1000)) as (i, r):
+            s = (StyledString("Hello", Style(mistral, 300))
                 .pens()
                 .f(hsl(0.3, s=1))
                 .align(r)

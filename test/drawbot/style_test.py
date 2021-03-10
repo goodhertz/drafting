@@ -5,7 +5,6 @@ sys.path.insert(0, str(Path("~/Goodhertz/drafting").expanduser()))
 from drafting.drawbot import *
 
 with new_page() as r:
-
     mistral = Font.Cacheable("~/Type/fonts/fonts/_script/MistralD.otf")
 
     s = (StyledString("Hello",
@@ -22,7 +21,7 @@ with new_page() as r:
 
     s.chain(dbdraw)
 
-    circle = DraftingPen().oval(r.inset(200)).reverse().rotate(-90)
+    circle = DraftingPen().oval(r.inset(200)).reverse().rotate(0)
     s2 = (s
         .copy()
         .zero_translate()

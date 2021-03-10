@@ -24,6 +24,8 @@ from drafting.pens.translationpen import TranslationPen, polarCoord
 
 from drafting.beziers import CurveCutter, splitCubicAtT
 
+from drafting.interpolation import norm
+
 class DraftingPen(RecordingPen, SHContext):
     """Fluent subclass of RecordingPen"""
 
@@ -300,7 +302,7 @@ class DraftingPen(RecordingPen, SHContext):
         if hasattr(pen, "pens"):
             for p in pen:
                 self.record(p)
-        if pen:
+        elif pen:
             pen.replay(self)
         return self
     
