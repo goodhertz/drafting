@@ -4,7 +4,7 @@ from shutil import copytree, copy2
 from pathlib import Path
 
 fg_src_dir = Path("~/Goodhertz/fontgoggles/Lib/fontgoggles").expanduser()
-fg_dst_dir = Path(__file__).parent / "coldtype/fontgoggles"
+fg_dst_dir = Path(__file__).parent / "drafting/fontgoggles"
 
 fg_dst_dir.mkdir(exist_ok=True)
 
@@ -18,6 +18,6 @@ for submodule in ["compile", "font", "misc"]:
             pyf.unlink()
         else:
             pycode = pyf.read_text()
-            pycode = pycode.replace(""""fontgoggles.font""", """"coldtype.fontgoggles.font""")
-            pycode = pycode.replace(""""fontgoggles.compile""", """"coldtype.fontgoggles.compile""")
+            pycode = pycode.replace(""""fontgoggles.font""", """"drafting.fontgoggles.font""")
+            pycode = pycode.replace(""""fontgoggles.compile""", """"drafting.fontgoggles.compile""")
             pyf.write_text(pycode)
