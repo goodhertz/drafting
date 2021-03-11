@@ -1,8 +1,27 @@
-from coldtype import *
 from drafting.geometry import Rect, Edge, Point
 from drafting.beziers import CurveCutter, raise_quadratic
 from drafting.pens.drawablepen import DrawablePenMixin
 from fontTools.pens.basePen import BasePen
+from drafting.color import Gradient, Color, normalize_color
+
+"""
+import math
+from random import random, randint, seed
+
+from drafting.text.reader import StyledString, Style
+from drafting.pens.blenderpen import BlenderPen, BPH
+from drafting.geometry import Rect
+from drafting.pens.draftingpen import DraftingPen
+
+BPH.Clear()
+
+r = Rect(0, 0, 1000, 1000)
+tc = BPH.Collection("Text")
+
+DraftingPen().f(1).rect(r).tag("Frame").cast(BlenderPen).draw(tc, plane=1)
+
+StyledString("Yoy", Style("~/Type/fonts/fonts/Nonplus_Black.otf", 200, fill=(1, 0, 0.5))).pen().align(r).tag("Yoy").cast(BlenderPen).draw(tc)
+"""
 
 import math
 import random
@@ -98,7 +117,7 @@ class BlenderPen(DrawablePenMixin, BasePen):
     def __init__(self, dat):
         super().__init__(None)
         self.dat = dat
-        tag = self.dat.getTag()
+        tag = self.dat.tag()
         self.tag = tag if tag and tag != "Unknown" else f"Curve_{random.randint(0, 1000000)}"
     
     def record(self, dat):
@@ -260,7 +279,7 @@ class BlenderPen(DrawablePenMixin, BasePen):
     
     def draw(self, collection, style=None, scale=0.01, cyclic=True, dn=False, plane=False):
         if plane:
-            self.bez, self.created = BPH.Primitive("Plane", collection, self.tag, dn=dn, container=self.dat.getFrame().scale(scale))
+            self.bez, self.created = BPH.Primitive("Plane", collection, self.tag, dn=dn, container=self.dat.ambit().scale(scale))
         else:
             self.bez, self.created = BPH.Primitive("Bezier", collection, self.tag, dn=dn)
             self.bez.data.fill_mode = "BOTH"
