@@ -59,6 +59,7 @@ SH_BINARY_OPS = {
     #"P": "project",
     "∏": "project",
     "π": "pinch",
+    "†": "take_curve",
 }
 
 SH_BINARY_OPS_EDGEAWARE = {

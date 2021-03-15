@@ -13,7 +13,7 @@ from fontTools.pens.transformPen import TransformPen
 from fontTools.pens.reverseContourPen import ReverseContourPen
 
 from fontPens.flattenPen import FlattenPen
-from drafting.geometry import Atom, Point, Line, Edge, Rect, align
+from drafting.geometry import Atom, Point, Line, Edge, Rect, Curve, align
 from drafting.color import normalize_color
 from drafting.sh import SH_UNARY_SUFFIX_PROPS, sh, SHContext
 
@@ -211,6 +211,9 @@ class DraftingPen(RecordingPen, SHContext):
                 getattr(self, move)(_e)
             elif isinstance(_e, Rect):
                 self.rect(_e)
+            elif isinstance(_e, Curve):
+                _, b, c, d = _e
+                self.curveTo(b, c, d)
             elif isinstance(_e, str):
                 getattr(self, _e)()
             elif _e[0][0] == "∑":
@@ -675,6 +678,11 @@ class DraftingPen(RecordingPen, SHContext):
     def take(self, slice):
         self.value = self.value[slice]
         return self
+    
+    def take_curve(self, idx):
+        a = self.value[idx-1][-1][-1]
+        b, c, d = self.value[idx][-1]
+        return Curve(a, b, c, d)
 
     def ups(self):
         "Convert this single pen into a collection of pens, with one-pen in the collection (this pen)"
