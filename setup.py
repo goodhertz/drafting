@@ -8,7 +8,7 @@ Color and geometric primitives
 
 setuptools.setup(
     name="drafting",
-    version="0.1.0",
+    version="0.1.1",
     author="Rob Stenson / Goodhertz",
     author_email="rob@goodhertz.com",
     description="Color and geometric primitives",
