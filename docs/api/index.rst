@@ -23,6 +23,7 @@ API
     drafting.text.reader.Style
     drafting.text.reader.StyledString
     drafting.text.composer.Composer
+    drafting.text.richtext.RichText
 
 The most important thing to understand is that textsetting classes can be turned into vector classes via the ``.pen`` or ``.pens`` methods available on both ``StyledString`` and ``Composer`` — ``.pen`` gets you a single vector representation of a piece of text (aka a ``DATPen``), while ``.pens`` gets you a structured list of DATPen’s, aka a ``DATPens``.
 

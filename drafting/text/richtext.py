@@ -20,6 +20,7 @@ except ImportError:
     pass
 
 class RichText(DraftingPens):
+    """Very experimental module to support rich-text from annotated strings, like a super-minimal-but-open-ended subset of markdown, inspired by the way rich text is built up in the time.nle.premiere DPS subclass in coldtype"""
     def __init__(self,
         rect,
         text,
@@ -33,9 +34,6 @@ class RichText(DraftingPens):
         blankfill="¶",
         strip=True,
         strip_lines=False):
-        """
-        Very experimental module to support rich-text from annotated strings, like a super-minimal-but-open-ended subset of markdown, inspired by the way rich text is built up in the animation.nle.premiere DPS subclass in coldtype
-        """
         super().__init__()
         self.tag_delimiters = tag_delimiters
         self.visible_boundary_chars = visible_boundaries
