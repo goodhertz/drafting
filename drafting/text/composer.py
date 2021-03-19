@@ -29,7 +29,7 @@ class Graf():
         # which came first, the height or the width???
         rects = []
         leadings = []
-        box = self.container.getFrame()
+        box = self.container.ambit()
         leftover = box
         for l in self.lines:
             box, leftover = leftover.divide(l.height(), "maxy", forcePixel=True)
@@ -72,7 +72,7 @@ class Graf():
         return pens
     
     def fpa(self, rect=None):
-        return self.fit().pens().align(rect or self.container.getFrame())
+        return self.fit().pens().align(rect or self.container.ambit())
 
 
 class Lockup(FittableMixin):
@@ -115,7 +115,7 @@ class Lockup(FittableMixin):
                 dps = s.pen()
                 dps.translate(x_off, 0)
                 pens.append(dps)
-            x_off += dps.getFrame().w
+            x_off += dps.ambit().w
             try:
                 x_off += s.margin[1]
                 x_off += s.strings[-1].tracking
