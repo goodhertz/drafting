@@ -33,11 +33,11 @@ setuptools.setup(
     ],
     install_requires=[
         "fontPens",
-        "fonttools[ufo,lxml,unicode,woff,type1]==4.21.1",
+        "fonttools[ufo,lxml,unicode,woff,type1]>=4.21.1",
         "more-itertools",
         "skia-pathops",
         "freetype-py",
-        "uharfbuzz==0.14.0",
+        "uharfbuzz>=0.14.0",
         "python-bidi",
         "ufo2ft",
         "unicodedata2",
