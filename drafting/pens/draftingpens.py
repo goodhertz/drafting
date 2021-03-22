@@ -566,3 +566,9 @@ class DraftingPens(DraftingPen):
             if p._frame:
                 dps.append(p.frameSet(th=th, tv=tv))
         return dps
+    
+    def cast(self, _class, *args):
+        return _class(self.pens)
+        res = _class(self, *args)
+        res.attrs = deepcopy(self.attrs)
+        return res

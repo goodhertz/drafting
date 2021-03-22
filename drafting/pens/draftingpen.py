@@ -43,6 +43,7 @@ class DraftingPen(RecordingPen, SHContext):
         self._visible = True
         self._parent = None
         self._last = None
+        self._alpha = 1
 
         self._typographic = False
         self.glyphName = None
@@ -481,6 +482,8 @@ class DraftingPen(RecordingPen, SHContext):
     
     def cast(self, _class, *args):
         """Quickly cast to a (different) subclass."""
+        #if hasattr(self, "pens"):
+        #    return _class(self.pens)
         res = _class(self, *args)
         res.attrs = deepcopy(self.attrs)
         return res
@@ -1096,6 +1099,14 @@ class DraftingPen(RecordingPen, SHContext):
         fn(self)
         self._current_attr_tag = was_tag
         return self
+    
+    def calc_alpha(self):
+        a = self._alpha
+        p = self._parent
+        while p:
+            a = a * p._alpha
+            p = p._parent
+        return a
     
     def v(self, v):
         self.visible(bool(v))

@@ -9,7 +9,10 @@ from drafting.color import hsl, bw
 from pathlib import Path
 
 def dbdraw(p:DraftingPen):
-    p.cast(DrawBotPen).draw()
+    if True and hasattr(p, "pens"):
+        p.pmap(lambda i, _p: _p.cast(DrawBotPen).draw())
+    else:
+        p.cast(DrawBotPen).draw()
     return p
 
 def page_rect() -> Rect:
