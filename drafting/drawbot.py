@@ -9,11 +9,14 @@ from drafting.color import hsl, bw
 from pathlib import Path
 
 def dbdraw(p:DraftingPen):
-    if True and hasattr(p, "pens"):
-        p.pmap(lambda i, _p: _p.cast(DrawBotPen).draw())
-    else:
-        p.cast(DrawBotPen).draw()
+    p.cast(DrawBotPen).draw()
     return p
+
+def dbdraw_with_filters(rect:Rect, filters):
+    def _draw_call(p:DraftingPen):
+        p.cast(DrawBotPen).draw_with_filters(rect, filters)
+        return p
+    return _draw_call
 
 def page_rect() -> Rect:
     return Rect(db.width(), db.height())
