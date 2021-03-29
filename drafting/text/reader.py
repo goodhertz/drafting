@@ -159,6 +159,7 @@ class Style():
             data={},
             layer=None,
             liga=True,
+            kern=True,
             fill=(0, 0.5, 1),
             stroke=None,
             strokeWidth=0,
@@ -251,7 +252,7 @@ class Style():
                 if k == 0:
                     found_features[k] = 0
         
-        self.features = {**dict(kern=True, liga=liga), **found_features}
+        self.features = {**dict(kern=kern, liga=liga), **found_features}
 
         self.fill = normalize_color(fill)
         self.stroke = normalize_color(stroke)
