@@ -23,8 +23,9 @@ from drafting.pens.outlinepen import OutlinePen
 from drafting.pens.translationpen import TranslationPen, polarCoord
 
 from drafting.beziers import CurveCutter, splitCubicAtT
-
 from drafting.interpolation import norm
+from drafting.grid import Grid
+
 
 class DraftingPen(RecordingPen, SHContext):
     """Fluent subclass of RecordingPen"""
@@ -958,6 +959,11 @@ class DraftingPen(RecordingPen, SHContext):
         for k, v in kwargs.items():
             self.macros[k] = v
         return self
+
+    def guide(self, grid:Grid):
+        for k, v in grid.keyed.items():
+            setattr(self, k, v)
+        return self
     
     def print(self, *args):
         for a in args:
@@ -992,7 +998,7 @@ class DraftingPen(RecordingPen, SHContext):
         """
         return fn(self, *args)
     
-    def cond(self, condition, if_true: Callable[["DraftingPen"], None], if_false=Callable[["DraftingPen"], None]):
+    def cond(self, condition, if_true:Callable[["DraftingPen"], None], if_false:Callable[["DraftingPen"], None]=None):
         # TODO make if_false optional
         if condition:
             if callable(if_true):
@@ -1000,7 +1006,7 @@ class DraftingPen(RecordingPen, SHContext):
             else:
                 self.gs(if_true)
         else:
-            if if_false:
+            if if_false is not None:
                 if callable(if_false):
                     if_false(self)
                 else:

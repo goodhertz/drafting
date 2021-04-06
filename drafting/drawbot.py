@@ -12,6 +12,11 @@ def dbdraw(p:DraftingPen):
     p.cast(DrawBotPen).draw()
     return p
 
+def tobp(p:DraftingPen):
+    bp = db.BezierPath()
+    p.replay(bp)
+    return bp
+
 def dbdraw_with_filters(rect:Rect, filters):
     def _draw_call(p:DraftingPen):
         p.cast(DrawBotPen).draw_with_filters(rect, filters)
