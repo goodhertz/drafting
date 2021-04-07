@@ -463,7 +463,7 @@ class DraftingPens(DraftingPen):
                     to_keep.extend(matches)
             if fn(idx, p):
                 to_keep.append(p)
-        return to_keep
+        return type(self)(to_keep)
     
     def index(self, idx, fn):
         fn(self[idx])

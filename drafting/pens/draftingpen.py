@@ -999,6 +999,8 @@ class DraftingPen(RecordingPen, SHContext):
         return fn(self, *args)
     
     def cond(self, condition, if_true:Callable[["DraftingPen"], None], if_false:Callable[["DraftingPen"], None]=None):
+        if callable(condition):
+            condition = condition(self)
         # TODO make if_false optional
         if condition:
             if callable(if_true):
