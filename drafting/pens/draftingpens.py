@@ -315,6 +315,15 @@ class DraftingPens(DraftingPen):
                 p.translate(t*idx, 0)
         return self
     
+    def track_with_width(self, t):
+        """Track-out/distribute elements"""
+        x = 0
+        for idx, p in enumerate(self.pens):
+            frame = p.ambit()
+            p.translate(x + t, 0)
+            x += frame.w
+        return self
+    
     def track_to_rect(self, rect, pullToEdges=False, r=0):
         """Distribute pens evenly within a frame"""
         if len(self) == 1:
