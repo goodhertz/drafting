@@ -41,3 +41,20 @@ def new_drawing(rect:Rect=Rect(1000, 1000), count=1, save_to=None):
     if save_to:
         db.saveImage(str(save_to))
     db.endDrawing()
+
+def releaser(fn, path, frame_class=None):
+    db.newDrawing()
+    r = fn.rect
+    w, h = r.wh()
+    for idx in range(0, fn.duration):
+        print(f"Saving page {idx}...")
+        db.newPage(w, h)
+        if frame_class:
+            fn.func(frame_class(idx, fn))
+        else:
+            fn.func(r)
+    pdf_path = Path(path)
+    pdf_path.parent.mkdir(exist_ok=True)
+    db.saveImage(str(pdf_path))
+    print("Saved pdf", str(pdf_path))
+    db.endDrawing()

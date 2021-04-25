@@ -1,7 +1,7 @@
 import math
 from fontTools.pens.recordingPen import RecordingPen, replayRecording
 from fontTools.misc.bezierTools import calcCubicArcLength, splitCubicAtT, calcQuadraticArcLength
-from drafting.geometry import Rect, Point
+from drafting.geometry import Rect, Point, Line
 
 
 def raise_quadratic(start, a, b):
@@ -59,7 +59,10 @@ class CurveCutter():
                 p0 = self.pen.value[i-1][-1][-1]
                 length += calcQuadraticArcLength(p0, p1, p2)
             elif t == "lineTo":
-                pass # todo
+                p0 = self.pen.value[i-1][-1][-1]
+                p1, = pts
+                l = Line(p0, p1)
+                length += l.length()
         return length
 
     def subsegment(self, start=None, end=None):
@@ -88,8 +91,20 @@ class CurveCutter():
                         else:
                             t += inc
                             tries += 1
-            if t == "lineTo":
-                pass # TODO
+            elif t == "lineTo":
+                p0 = self.pen.value[i-1][-1][-1]
+                p1, = pts
+                l = Line(p0, p1)
+                length_line = l.length()
+                if ended:
+                    pass
+                elif _length + length_line < end:
+                    _length += length_line
+                else:
+                    res = l.tpx(end - _length)
+                    out.append(("lineTo", (res,)))
+                    ended = True
+            
             if not ended:
                 out.append((t, pts))
     
