@@ -472,7 +472,10 @@ class DraftingPens(DraftingPen):
                     to_keep.extend(matches)
             if fn(idx, p):
                 to_keep.append(p)
-        return type(self)(to_keep)
+        try:
+            return type(self)(to_keep)
+        except TypeError:
+            return self.multi_pen_class(to_keep)
     
     def index(self, idx, fn):
         fn(self[idx])
