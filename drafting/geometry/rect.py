@@ -473,24 +473,9 @@ class Rect(Geometrical):
         """
 
         ev = txt_to_edge(ev)
-        if eh == "C":
-            return self.point(Edge.CenterX, Edge.CenterY)
-        elif eh == "W":
-            return self.point(Edge.MinX, Edge.CenterY)
-        elif eh == "NW":
-            return self.point(Edge.MinX, Edge.MaxY)
-        elif eh == "N":
-            return self.point(Edge.CenterX, Edge.MaxY)
-        elif eh == "NE":
-            return self.point(Edge.MaxX, Edge.MaxY)
-        elif eh == "E":
-            return self.point(Edge.MaxX, Edge.CenterY)
-        elif eh == "SE":
-            return self.point(Edge.MaxX, Edge.MinY)
-        elif eh == "S":
-            return self.point(Edge.CenterX, Edge.MinY)
-        elif eh == "SW":
-            return self.point(Edge.MinX, Edge.MinY)
+        pc = Edge.PairFromCompass(eh)
+        if pc:
+            return self.point(*pc)
         else:
             px = self.x
             py = self.y
