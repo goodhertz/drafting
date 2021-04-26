@@ -152,6 +152,17 @@ class DraftingPen(RecordingPen, SHContext):
             return True
         return False
     
+    def fully_close_path(self):
+        if self.value[-1][0] == "closePath":        
+            start = self.value[0][-1][-1]
+            end = self.value[-2][-1][-1]
+
+            if start != end:
+                self.value = self.value[:-1]
+                self.lineTo(start)
+                self.closePath()
+        return self
+    
     def reverse(self):
         """Reverse the winding direction of the pen."""
         if self.unended():
