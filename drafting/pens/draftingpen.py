@@ -1094,9 +1094,13 @@ class DraftingPen(RecordingPen, SHContext):
                 elif k == "stroke":
                     existing = attrs.get("stroke", {})
                     if not isinstance(v, dict):
-                        attrs[k] = dict(color=normalize_color(v), weight=existing.get("weight", 1))
+                        c = normalize_color(v)
+                        default_w = 1 if c.a > 0 else 0
+                        attrs[k] = dict(color=c, weight=existing.get("weight", default_w))
                     else:
-                        attrs[k] = dict(weight=v.get("weight", existing.get("weight", 1)), color=normalize_color(v.get("color", 0)))
+                        c = normalize_color(v.get("color", 0))
+                        default_w = 1 if c.a > 0 else 0
+                        attrs[k] = dict(weight=v.get("weight", existing.get("weight",default_w)), color=c)
                 elif k == "strokeWidth":
                     if "stroke" in attrs:
                         attrs["stroke"]["weight"] = v
