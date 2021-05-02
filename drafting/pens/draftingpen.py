@@ -308,7 +308,7 @@ class DraftingPen(RecordingPen, SHContext):
     def addComponent(self, glyphName, transformation):
         if hasattr(self, "_glyphSet") and self._glyphSet:
             if glyphName in self._glyphSet:
-                dp = DraftingPen().glyph(self._glyphSet[glyphName]).transform(transformation)
+                dp = DraftingPen().glyph(self._glyphSet[glyphName], self._glyphSet).transform(transformation)
                 self.record(dp)
             #super().addComponent(glyphName, transformation)
         else:
