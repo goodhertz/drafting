@@ -411,9 +411,9 @@ class Rect(Geometrical):
     def __add__(self, another_rect):
         return Rect(add(self, another_rect))
 
-    def grid(self, rows=2, columns=2):
+    def grid(self, columns=2, rows=2):
         """Construct a grid"""
-        xs = [row.subdivide(rows, Edge.MinX) for row in self.subdivide(columns, Edge.MaxY)]
+        xs = [row.subdivide(columns, Edge.MinX) for row in self.subdivide(rows, Edge.MaxY)]
         return [item for sublist in xs for item in sublist]
 
     def pieces(self, amount, edge):

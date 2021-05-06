@@ -306,7 +306,13 @@ class DraftingPen(RecordingPen, SHContext):
         return self
 
     def addComponent(self, glyphName, transformation):
-        super().addComponent(glyphName, transformation)
+        if hasattr(self, "_glyphSet") and self._glyphSet:
+            if glyphName in self._glyphSet:
+                dp = DraftingPen().glyph(self._glyphSet[glyphName], self._glyphSet).transform(transformation)
+                self.record(dp)
+            #super().addComponent(glyphName, transformation)
+        else:
+            print("no glyphset, cannot add component")
         return self
 
     def replay(self, pen):
@@ -322,25 +328,32 @@ class DraftingPen(RecordingPen, SHContext):
             pen.replay(self)
         return self
     
-    def glyph(self, glyph):
+    def glyph(self, glyph, glyphSet=None):
         """Play a glyph (like from `defcon`) into this pen."""
+        if glyphSet:
+            self._glyphSet = glyphSet
         glyph.draw(self)
         return self
     
-    def to_glyph(self, name=None, width=None):
+    def to_glyph(self, name=None, width=None, allow_blank=False):
         """
         Create a glyph (like from `defcon`) using this pen’s value.
         *Warning*: if path is unended, closedPath will be called
         """
         from defcon import Glyph
-        if self.unended():
-            self.closePath()
+        if not allow_blank:
+            if self.unended():
+                self.closePath()
         bounds = self.bounds()
         glyph = Glyph()
         glyph.name = name
         glyph.width = width or bounds.w
-        sp = glyph.getPen()
-        self.replay(sp)
+        try:
+            sp = glyph.getPen()
+            self.replay(sp)
+        except AssertionError:
+            if not allow_blank:
+                print(">>>blank glyph:", glyph.name)
         return glyph
     
     def rect(self, rect):

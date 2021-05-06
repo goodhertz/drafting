@@ -531,6 +531,7 @@ class StyledString(FittableMixin):
             self.trackFrames(space_width=space_width)
 
         for glyph in self.glyphs:
+            #print(glyph, glyph.frame)
             glyph.frame = glyph.frame.scale(self.scale())
 
         if self.style.trackingMode == 0:
