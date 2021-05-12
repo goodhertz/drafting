@@ -189,3 +189,18 @@ class Composer():
         Entire multiline text as a single vector
         """
         return self.graf.pens().pen()
+
+
+def StSt(text,
+    font,
+    font_size,
+    rect=Rect(1080, 1080),
+    **kwargs):
+    style = Style(font, font_size, **kwargs)
+    fit = kwargs.get("fit", None)
+    leading = kwargs.get("leading", 10)
+    if "\n" in text:
+        lockup = Composer(rect, text, style, fit=fit, leading=leading)
+    else:
+        lockup = StyledString(text, style)
+    return lockup
