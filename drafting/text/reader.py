@@ -1,3 +1,4 @@
+from asyncio.tasks import sleep
 from pathlib import Path
 from collections import OrderedDict
 from functools import partial
@@ -86,6 +87,8 @@ def empty_writer(*args):
 
 FontCache = {}
 
+artificial_loop = None
+
 class Font():
     # TODO support glyphs?
     def __init__(self, path, number=0, cacheable=False):
@@ -102,7 +105,15 @@ class Font():
             return self
         else:
             self._loaded = True
-            asyncio.get_event_loop().run_until_complete(self.font.load(empty_writer))
+            try:
+                loop = asyncio.get_event_loop()
+                loop.run_until_complete(self.font.load(empty_writer))
+            except RuntimeError:
+                global artificial_loop
+                if not artificial_loop:
+                    artificial_loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(artificial_loop)
+                    artificial_loop.run_until_complete(self.font.load(empty_writer))
             return self
     
     def Cacheable(path):
