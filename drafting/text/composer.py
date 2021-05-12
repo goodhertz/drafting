@@ -193,12 +193,18 @@ class Composer():
 
 def StSt(text,
     font,
-    font_size,
+    font_size=24,
     rect=Rect(1080, 1080),
     **kwargs):
-    style = Style(font, font_size, **kwargs)
+    
+    if isinstance(font, Style):
+        style = font
+    else:
+        style = Style(font, font_size, **kwargs)
+    
     fit = kwargs.get("fit", None)
     leading = kwargs.get("leading", 10)
+
     if "\n" in text:
         lockup = Composer(rect, text, style, fit=fit, leading=leading)
     else:

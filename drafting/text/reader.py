@@ -417,7 +417,7 @@ class Style():
                 np.translate(0, -h)
             if debug:
                 (np.record(_PenClass()
-                    .line([(0, yp), (p.getFrame().point("E").x, yp)])
+                    .line([(0, yp), (p.ambit().point("E").x, yp)])
                     .outline()))
             return np
 
@@ -430,9 +430,9 @@ class Style():
             x0, y0 = xy
             ra = math.radians(90+angle)
             ydsc = y0 + (0 - x0) / math.tan(ra)
-            yasc = y0 + (p.getFrame().point("E").x - x0) / math.tan(ra)
+            yasc = y0 + (p.ambit().point("E").x - x0) / math.tan(ra)
             p0 = (0, ydsc)
-            p1 = (p.getFrame().point("E").x, yasc)
+            p1 = (p.ambit().point("E").x, yasc)
 
             np = (p.flatten(flatten) if flatten else p).nonlinear_transform(lambda x,y: (x, y if not is_left(p0, p1, (x, y)) else y + h))
             if debug:
@@ -801,6 +801,6 @@ class SegmentedString(FittableMixin):
                 pens.layered = True
             dps.translate(x_off, 0)
             pens.extend(dps.pens)
-            x_off += dps.getFrame().w
+            x_off += dps.ambit().w
         return pens
         #return DATPens([s.pens(frame=True) for s in self.strings])
