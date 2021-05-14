@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.17.0/full/pyodide.js"></script>
+</head>
+
+<body>
+    Pyodide test page <br>
+    Open your browser console to see Pyodide output
+    <script type="text/javascript">
+        async function main() {
+            await loadPyodide({
+                indexURL: "https://cdn.jsdelivr.net/pyodide/v0.17.0/full/"
+            });
+            pyodide.runPythonAsync(`
+                import micropip
+                await micropip.install('fontPens')
+                import fontPens
+                print(fontPens)
+            `);
+            console.log(pyodide.runPython(`
+                import sys
+                sys.version
+                print(">>>", sys.version)
+            `));
+            //console.log(pyodide.runPython("print(1 + 2)"));
+        }
+        main();
+    </script>
+</body>
+
+</html>

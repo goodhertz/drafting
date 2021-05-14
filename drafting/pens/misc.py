@@ -6,8 +6,10 @@ from fontTools.misc.bezierTools import splitCubicAtT, calcCubicArcLength
 
 USE_SKIA_PATHOPS = True
 
-
-from pathops import Path, OpBuilder, PathOp
+try:
+    from pathops import Path, OpBuilder, PathOp
+except:
+    pass
 try:
     from booleanOperations.booleanGlyph import BooleanGlyph
 except:

@@ -1,6 +1,8 @@
 venv
+venv2
 *.egg-info
 *.pyc
 build
 dist
 __pycache__
+test_cairo.pdf

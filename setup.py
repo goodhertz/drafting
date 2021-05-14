@@ -22,8 +22,6 @@ setuptools.setup(
         "drafting.pens",
         "drafting.text",
         "drafting.color",
-        #"drafting.drawbot",
-        #"drafting.beziers",
         "drafting.geometry",
         "drafting.fontgoggles",
         "drafting.interpolation",
@@ -31,16 +29,20 @@ setuptools.setup(
         "drafting.fontgoggles.misc",
         "drafting.fontgoggles.compile",
     ],
+    extras_require={
+        "text": [
+            "skia-pathops",
+            "freetype-py",
+            "uharfbuzz>=0.14.0",
+            "unicodedata2",
+            "ufo2ft",
+            "python-bidi",
+        ]
+    },
     install_requires=[
         "fontPens",
-        "fonttools[ufo,lxml,unicode,woff,type1]>=4.21.1",
+        "fonttools[ufo,lxml,woff,type1]>=4.21.1",
         "more-itertools",
-        "skia-pathops",
-        "freetype-py",
-        "uharfbuzz>=0.14.0",
-        "python-bidi",
-        "ufo2ft",
-        "unicodedata2",
     ],
     classifiers=[
         "Programming Language :: Python :: 3",
