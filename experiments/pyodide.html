@@ -13,12 +13,15 @@
             await loadPyodide({
                 indexURL: "https://cdn.jsdelivr.net/pyodide/v0.17.0/full/"
             });
-            pyodide.runPythonAsync(`
+            let result = await pyodide.runPythonAsync(`
                 import micropip
-                await micropip.install('fontPens')
-                import fontPens
-                print(fontPens)
+                await micropip.install('drafting==0.1.6')
+                from drafting.geometry.rect import Rect
+                r = Rect(500, 500).inset(100)
+                print(r)
+                r
             `);
+            console.log(">>>>>>>>>>>>>>>>>>>", result);
             console.log(pyodide.runPython(`
                 import sys
                 sys.version
