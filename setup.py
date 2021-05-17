@@ -8,7 +8,7 @@ Color and geometric primitives
 
 setuptools.setup(
     name="drafting",
-    version="0.1.7",
+    version="0.1.8",
     author="Rob Stenson / Goodhertz",
     author_email="rob@goodhertz.com",
     description="Color and geometric primitives",
@@ -40,8 +40,8 @@ setuptools.setup(
         ]
     },
     install_requires=[
-        "fontPens",
         "fonttools[ufo,lxml,woff,type1]>=4.21.1",
+        "fontPens",
         "more-itertools",
     ],
     classifiers=[
