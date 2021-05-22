@@ -23,6 +23,7 @@ class TestText(unittest.TestCase):
 
     def test_format_equality(self):
         ttf = self._test_glyph_names("assets/ColdtypeObviously-VF.ttf")
+        otf = self._test_glyph_names("assets/ColdtypeObviously_CompressedBlackItalic.otf")
         ufo = self._test_glyph_names("assets/ColdtypeObviously_CompressedBlackItalic.ufo")
         ds = self._test_glyph_names("assets/ColdtypeObviously.designspace")
 
