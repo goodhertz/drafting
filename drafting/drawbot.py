@@ -4,7 +4,8 @@ from drafting.geometry import Point, Line, Rect
 from drafting.pens.drawbotpen import DrawBotPen
 from drafting.pens.draftingpen import DraftingPen
 from drafting.pens.draftingpens import DraftingPens
-from drafting.text.reader import StyledString, Style, Font, StSt
+from drafting.text.reader import StyledString, Style, Font
+from drafting.text.composer import StSt
 from drafting.color import hsl, bw
 from pathlib import Path
 
