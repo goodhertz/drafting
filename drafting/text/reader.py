@@ -81,12 +81,7 @@ def normalize_font_path(font):
     else:
         raise FontNotFoundException(literal)
 
-def empty_writer(*args):
-    pass
-
 FontCache = {}
-
-artificial_loop = None
 
 class Font():
     # TODO support glyphs?
