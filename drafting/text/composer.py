@@ -195,6 +195,7 @@ def StSt(text,
     font,
     font_size=24,
     rect=Rect(1080, 1080),
+    xa="mdx",
     **kwargs):
     
     if isinstance(font, Style):
@@ -206,7 +207,12 @@ def StSt(text,
     leading = kwargs.get("leading", 10)
 
     if "\n" in text:
-        lockup = Composer(rect, text, style, fit=fit, leading=leading)
+        lockup = Composer(rect, text, style, fit=fit, leading=leading).pens()
+        if xa:
+            lockup = lockup.xa(xa)
     else:
         lockup = StyledString(text, style)
+        if fit:
+            lockup.fit(fit)
+        lockup = lockup.pens()
     return lockup

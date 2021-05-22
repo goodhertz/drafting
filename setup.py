@@ -41,7 +41,7 @@ setuptools.setup(
     },
     install_requires=[
         "lxml",
-        "fonttools[ufo,lxml,woff,type1]>=4.21.1",
+        "fonttools[ufo]",
         "fontPens",
         "more-itertools",
     ],
