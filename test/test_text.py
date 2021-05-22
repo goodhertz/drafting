@@ -10,7 +10,7 @@ tf = Path(__file__).parent
 class TestText(unittest.TestCase):
     def _test_glyph_names(self, font_path):
         ss = StSt("CDELOPTY", font_path, 100, wdth=0)
-        ssps = ss.pens()
+        ssps = ss#.pens()
         self.assertEqual(len(ssps), 8)
         self.assertEqual(ssps[0].glyphName, "C")
         self.assertEqual(ssps[-1].glyphName, "Y")

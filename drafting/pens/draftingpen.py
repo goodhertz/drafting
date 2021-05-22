@@ -721,7 +721,7 @@ class DraftingPen(RecordingPen, SHContext):
     def pens(self):
         """Return a set representation of this"""
         if hasattr(self, "_pens"):
-            return self.copy()
+            return self
         else:
             return self.ups()
     
