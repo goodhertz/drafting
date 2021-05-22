@@ -103,8 +103,8 @@ class DrawBotPen(DrawablePenMixin, DraftingPen):
         db.linearGradient(stops[0][1], stops[1][1], [list(s[0]) for s in stops], [0, 1])
     
     def draw(self, scale=1, style=None):
-        if hasattr(self.dat, "pens"):
-            for p in self.dat.pens:
+        if hasattr(self.dat, "_pens"):
+            for p in self.dat._pens:
                 DrawBotPen(p, rect=self.rect).draw(scale=scale)
         else:
             with db.savedState():

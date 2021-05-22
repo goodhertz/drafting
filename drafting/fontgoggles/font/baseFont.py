@@ -26,7 +26,7 @@ class BaseFont:
     def close(self):
         pass
 
-    async def load(self, outputWriter):
+    def load(self, outputWriter):
         pass
 
     def updateFontPath(self, newFontPath):

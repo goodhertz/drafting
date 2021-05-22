@@ -41,8 +41,7 @@ class _OTFBaseFont(BaseFont):
         if "CPAL" in self.ttFont:
             palettes = []
             for paletteRaw in self.ttFont["CPAL"].palettes:
-                palette = [(color.red/255, color.green/255, color.blue/255, color.alpha/255)
-                           for color in paletteRaw]
+                palette = [(color.red/255, color.green/255, color.blue/255, color.alpha/255) for color in paletteRaw]
                 palettes.append(palette)
             return palettes
         else:
@@ -60,7 +59,7 @@ class OTFFont(_OTFBaseFont):
             with open(fontPath, "rb") as f:
                 self.fontData = f.read()
 
-    async def load(self, outputWriter):
+    def load(self, outputWriter):
         fontData = self.fontData
         f = io.BytesIO(fontData)
         self.ttFont = TTFont(f, fontNumber=self.fontNumber, lazy=True)
@@ -77,8 +76,8 @@ class OTFFont(_OTFBaseFont):
 
 class TTXFont(_OTFBaseFont):
 
-    async def load(self, outputWriter):
-        fontData = await compileTTXToBytes(self.fontPath, outputWriter)
+    def load(self, outputWriter):
+        fontData = compileTTXToBytes(self.fontPath, outputWriter)
         f = io.BytesIO(fontData)
         self.ttFont = TTFont(f, fontNumber=self.fontNumber, lazy=True)
         self.ftFont = FTFont(fontData, fontNumber=self.fontNumber, ttFont=self.ttFont)

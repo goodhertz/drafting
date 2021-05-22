@@ -78,11 +78,11 @@ def calculate_pathop(pen1, pen2, operation):
 
 class ExplodingPen(ContourFilterPen):
     def __init__(self, outPen):
-        self.pens = []
+        self._pens = []
         super().__init__(outPen)
 
     def filterContour(self, contour):
-        self.pens.append(contour)
+        self._pens.append(contour)
         return contour
 
 

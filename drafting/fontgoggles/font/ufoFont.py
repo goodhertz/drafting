@@ -42,7 +42,7 @@ class UFOFont(BaseFont):
         self.glyphSet.glyphClass = Glyph
         self.layerGlyphSets = {}
 
-    async def load(self, outputWriter):
+    def load(self, outputWriter):
         if hasattr(self, "reader"):
             self._cachedGlyphs = {}
             return
@@ -53,11 +53,9 @@ class UFOFont(BaseFont):
         self._cachedGlyphs = {}
         if self.ufoState is None:
             includedFeatureFiles = extractIncludedFeatureFiles(self.fontPath, self.reader)
-            self.ufoState = UFOState(self.reader, self.glyphSet,
-                                     getUnicodesAndAnchors=self._getUnicodesAndAnchors,
-                                     includedFeatureFiles=includedFeatureFiles)
+            self.ufoState = UFOState(self.reader, self.glyphSet, getUnicodesAndAnchors=self._getUnicodesAndAnchors, includedFeatureFiles=includedFeatureFiles)
 
-        fontData = await compileUFOToBytes(self.fontPath, outputWriter)
+        fontData = compileUFOToBytes(self.fontPath, outputWriter)
 
         f = io.BytesIO(fontData)
         self.ttFont = TTFont(f, lazy=True)

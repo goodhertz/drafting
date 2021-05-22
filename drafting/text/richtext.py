@@ -49,7 +49,7 @@ class RichText(DraftingPens):
         if strip_lines:
             text = "\n".join([l.strip() for l in text.split("\n")])
         
-        self.pens = self.parse_block(text, render_text_fn, rect, fit, graf_style).pens
+        self._pens = self.parse_block(text, render_text_fn, rect, fit, graf_style)._pens
 
     def parse_block(self, txt, render_text_fn, rect, fit, graf_style):
         parsed_lines = []
@@ -195,10 +195,10 @@ class RichText(DraftingPens):
         if not blank and self.blankfill:
             blank = self.blankfill
         
-        for line in self.pens:
+        for line in self._pens:
             txt = reduce(lambda acc, p: p.data.get("txt", "") + acc, line, "")
             if txt == blank:
-                line.pens = [DraftingPen()]
+                line._pens = [DraftingPen()]
         
         return self
 

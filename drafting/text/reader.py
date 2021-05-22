@@ -1,9 +1,8 @@
-from asyncio.tasks import sleep
 from pathlib import Path
 from collections import OrderedDict
 from functools import partial
 
-import unicodedata, os, math, asyncio
+import unicodedata, math
 
 from fontTools.misc.transform import Transform
 from fontTools.pens.transformPen import TransformPen
@@ -104,16 +103,8 @@ class Font():
         if self._loaded:
             return self
         else:
+            self.font.load(None)
             self._loaded = True
-            try:
-                loop = asyncio.get_event_loop()
-                loop.run_until_complete(self.font.load(empty_writer))
-            except RuntimeError:
-                global artificial_loop
-                if not artificial_loop:
-                    artificial_loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(artificial_loop)
-                    artificial_loop.run_until_complete(self.font.load(empty_writer))
             return self
     
     def Cacheable(path):
@@ -800,7 +791,7 @@ class SegmentedString(FittableMixin):
             if dps.layered:
                 pens.layered = True
             dps.translate(x_off, 0)
-            pens.extend(dps.pens)
+            pens.extend(dps._pens)
             x_off += dps.ambit().w
         return pens
         #return DATPens([s.pens(frame=True) for s in self.strings])

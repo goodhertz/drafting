@@ -110,7 +110,7 @@ class Lockup(FittableMixin):
                 if self.nestSlugs:
                     pens.append(dps)
                 else:
-                    pens.extend(dps.pens)
+                    pens.extend(dps._pens)
             else:
                 dps = s.pen()
                 dps.translate(x_off, 0)

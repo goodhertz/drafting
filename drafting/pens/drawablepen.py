@@ -39,12 +39,12 @@ class DrawablePenMixin(object):
 
     def FindPens(pens):
         if isinstance(pens, DraftingPen):
-            pens = pens.collapse().pens
+            pens = pens.collapse()._pens
         
         for pen in pens:
             if pen:
-                if hasattr(pen, "pens"):
-                    for _p in pen.collapse().pens:
+                if hasattr(pen, "_pens"):
+                    for _p in pen.collapse()._pens:
                         if _p:
                             yield _p
                 else:

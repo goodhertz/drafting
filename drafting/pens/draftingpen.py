@@ -190,7 +190,7 @@ class DraftingPen(RecordingPen, SHContext):
     def gss(self, s):
         dps = self.multi_pen_class()
         sh(s, ctx=self, dps=dps)
-        for p in dps.pens:
+        for p in dps._pens:
             self.record(p)
         return self
     
@@ -321,7 +321,7 @@ class DraftingPen(RecordingPen, SHContext):
     
     def record(self, pen):
         """Play a pen into this pen, meaning that pen will be added to this one’s value."""
-        if hasattr(pen, "pens"):
+        if hasattr(pen, "_pens"):
             for p in pen:
                 self.record(p)
         elif pen:
@@ -507,8 +507,8 @@ class DraftingPen(RecordingPen, SHContext):
     
     def cast(self, _class, *args):
         """Quickly cast to a (different) subclass."""
-        #if hasattr(self, "pens"):
-        #    return _class(self.pens)
+        #if hasattr(self, "_pens"):
+        #    return _class(self._pens)
         res = _class(self, *args)
         res.attrs = deepcopy(self.attrs)
         return res
@@ -685,7 +685,7 @@ class DraftingPen(RecordingPen, SHContext):
         ep = ExplodingPen(dp)
         self.replay(ep)
         dps = self.multi_pen_class()
-        for p in ep.pens:
+        for p in ep._pens:
             dp = type(self)()
             dp.value = p
             dp.attrs = deepcopy(self.attrs)
@@ -717,6 +717,13 @@ class DraftingPen(RecordingPen, SHContext):
         dps = self.multi_pen_class()
         dps.append(self.copy())
         return dps
+    
+    def pens(self):
+        """Return a set representation of this"""
+        if hasattr(self, "_pens"):
+            return self.copy()
+        else:
+            return self.ups()
     
     def collapse(self, levels=100, onself=False):
         return self.multi_pen_class([self])
@@ -797,10 +804,10 @@ class DraftingPen(RecordingPen, SHContext):
         if parent:
             self._parent = parent
         
-        is_dps = hasattr(self, "pens")
+        is_dps = hasattr(self, "_pens")
         if is_dps:
             callback(self, -1, dict(depth=depth))
-            for pen in self.pens:
+            for pen in self._pens:
                 pen.walk(callback, depth=depth+1, visible_only=visible_only, parent=self)
             callback(self, 1, dict(depth=depth))
         else:
@@ -1200,15 +1207,15 @@ class DraftingPen(RecordingPen, SHContext):
     
     def all_pens(self):
         pens = []
-        if hasattr(self, "pens"):
-            pens = self.collapse().pens
+        if hasattr(self, "_pens"):
+            pens = self.collapse()._pens
         if isinstance(self, self.single_pen_class):
             pens = [self]
         
         for pen in pens:
             if pen:
-                if hasattr(pen, "pens"):
-                    for _p in pen.collapse().pens:
+                if hasattr(pen, "_pens"):
+                    for _p in pen.collapse()._pens:
                         if _p:
                             yield _p
                 else:

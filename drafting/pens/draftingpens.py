@@ -11,7 +11,7 @@ from drafting.beziers import CurveCutter
 
 class DraftingPens(DraftingPen):
     def __init__(self, pens=None):
-        self.pens = []
+        self._pens = []
         super().__init__()
 
         self.single_pen_class = DraftingPen
@@ -40,24 +40,24 @@ class DraftingPens(DraftingPen):
         if out is None:
             out = []
         out.append(" |"*depth + " " + str(self))
-        for pen in self.pens:
-            if hasattr(pen, "pens"):
+        for pen in self._pens:
+            if hasattr(pen, "_pens"):
                 pen.tree(out=out, depth=depth+1)
             else:
                 out.append(" |"*(depth+1) + " " + str(pen))
         return "\n".join(out)
     
     def __repr__(self):
-        return f"<{type(self).__name__}:{len(self.pens)}>"
+        return f"<{type(self).__name__}:{len(self._pens)}>"
     
     def __len__(self):
-        return len(self.pens)
+        return len(self._pens)
     
     def __getitem__(self, index):
-        return self.pens[index]
+        return self._pens[index]
         
     def __setitem__(self, index, pen):
-        self.pens[index] = pen
+        self._pens[index] = pen
     
     def __iadd__(self, item):
         return self.append(item)
@@ -67,25 +67,25 @@ class DraftingPens(DraftingPen):
     
     def append(self, pen, allow_blank=False):
         if isinstance(pen, Geometrical):
-            return self.pens.append(self.single_pen_class(pen))
+            return self._pens.append(self.single_pen_class(pen))
         elif isinstance(pen, DraftingPen):
-            self.pens.append(pen)
+            self._pens.append(pen)
         else:
             try:
                 for p in pen:
                     if p:
-                        self.pens.append(p)
+                        self._pens.append(p)
             except TypeError:
-                self.pens.append(pen)
+                self._pens.append(pen)
         return self
     
     def insert(self, index, pen):
         if pen:
-            self.pens.insert(index, pen)
+            self._pens.insert(index, pen)
         return self
     
     def extend(self, pens):
-        if hasattr(pens, "pens"):
+        if hasattr(pens, "_pens"):
             self.append(pens)
         else:
             for p in pens:
@@ -98,7 +98,7 @@ class DraftingPens(DraftingPen):
     
     def reversePens(self):
         """Reverse the order of the pens; useful for overlapping glyphs from the left-to-right rather than right-to-left (as is common in OpenType applications)"""
-        self.pens = list(reversed(self.pens))
+        self._pens = list(reversed(self._pens))
         return self
     
     # Sizing
@@ -113,8 +113,8 @@ class DraftingPens(DraftingPen):
             return self._frame
         else:
             try:
-                union = self.pens[0].ambit(th=th, tv=tv)
-                for p in self.pens[1:]:
+                union = self._pens[0].ambit(th=th, tv=tv)
+                for p in self._pens[1:]:
                     union = union.union(p.ambit(th=th, tv=tv))
                 return union
             except Exception as e:
@@ -134,13 +134,13 @@ class DraftingPens(DraftingPen):
     def gss(self, s):
         dps = type(self)()
         xs = sh(s, ctx=self, dps=dps)
-        return self.extend(dps.pens)
+        return self.extend(dps._pens)
     
     def gsgroup(self, fn):
         grouper = self.copy(with_data=False)
         grouper.define(**self.defs.values)
         grouper.macros = self.macros
-        grouper.pens = []
+        grouper._pens = []
         res = fn(grouper)
         self.ap(res)
         return self
@@ -196,10 +196,10 @@ class DraftingPens(DraftingPen):
         """A flat representation of this set as a single pen"""
         dp = self.single_pen_class()
         fps = self.collapse()
-        for p in fps.pens:
+        for p in fps._pens:
             dp.record(p)
-        if len(fps.pens) > 0:
-            for k, attrs in fps.pens[0].attrs.items():
+        if len(fps._pens) > 0:
+            for k, attrs in fps._pens[0].attrs.items():
                 dp.attr(tag=k, **attrs)
         dp.frame(self.ambit())
         return dp
@@ -210,16 +210,16 @@ class DraftingPens(DraftingPen):
         outlines; this function flattens nested collections into
         one-dimensional collections"""
         pens = []
-        for idx, p in enumerate(self.pens):
-            if hasattr(p, "pens") and levels > 0:
-                pens.extend(p.collapse(levels=levels-1).pens)
+        for idx, p in enumerate(self._pens):
+            if hasattr(p, "_pens") and levels > 0:
+                pens.extend(p.collapse(levels=levels-1)._pens)
             else:
                 pens.append(p)
         dps = self.multi_pen_class(self)(pens)
         if self.layered:
             dps.layered = True
         if onself:
-            self.pens = dps.pens
+            self._pens = dps._pens
             return self
         else:
             return dps
@@ -229,15 +229,15 @@ class DraftingPens(DraftingPen):
         usually done so you can duplicate and further modify a
         DATPens without mutating the original"""
         dps = type(self)()
-        for p in self.pens:
+        for p in self._pens:
             dps.append(p.copy(with_data=with_data))
         return dps
     
     def remove_blanks(self):
         """Remove blank pens"""
         nonblank_pens = []
-        for pen in self.pens:
-            if hasattr(pen, "pens"):
+        for pen in self._pens:
+            if hasattr(pen, "_pens"):
                 pen.remove_blanks()
                 nonblank_pens.append(pen)
             elif len(pen.value) > 0:
@@ -246,18 +246,18 @@ class DraftingPens(DraftingPen):
             #print("RB RES", rb, bool(rb))
             #if not rb:
             #    nonblank_pens.append(pen)
-        self.pens = nonblank_pens
+        self._pens = nonblank_pens
         return self
     
     def remove_overlap(self):
-        for p in self.pens:
+        for p in self._pens:
             p.removeOverlap()
         return self
     
     removeOverlap = remove_overlap
     
     def transform(self, transform, transformFrame=True):
-        for p in self.pens:
+        for p in self._pens:
             p.transform(transform, transformFrame=transformFrame)
         if transformFrame and self._frame:
             self._frame = self._frame.transform(transform)
@@ -265,22 +265,22 @@ class DraftingPens(DraftingPen):
     
     def attr(self, key="default", field=None, **kwargs):
         if field: # getting, not setting, kind of weird to return the first value?
-            if len(self.pens) > 0:
-                return self.pens[0].attr(key=key, field=field)
+            if len(self._pens) > 0:
+                return self._pens[0].attr(key=key, field=field)
             else:
                 return None
-        for p in self.pens:
+        for p in self._pens:
             p.attr(key, **kwargs)
         return self
     
     def lattr(self, tag, fn: Callable[[DraftingPen], Optional[DraftingPen]]):
-        for p in self.pens:
+        for p in self._pens:
             p.lattr(tag, fn)
         return self
     
     def round_to(self, rounding):
         """Round all values for all pens in this set to nearest multiple of rounding value (rather than places, as in `round`)"""
-        for p in self.pens:
+        for p in self._pens:
             p.round_to(rounding)
         return self
     
@@ -307,7 +307,7 @@ class DraftingPens(DraftingPen):
     
     def track(self, t, v=False):
         """Track-out/distribute elements"""
-        for idx, p in enumerate(self.pens):
+        for idx, p in enumerate(self._pens):
             frame = p.ambit()
             if v:
                 p.translate(0, t*idx)
@@ -318,7 +318,7 @@ class DraftingPens(DraftingPen):
     def track_with_width(self, t):
         """Track-out/distribute elements"""
         x = 0
-        for idx, p in enumerate(self.pens):
+        for idx, p in enumerate(self._pens):
             frame = p.ambit()
             p.translate(x + t, 0)
             x += frame.w
@@ -329,7 +329,7 @@ class DraftingPens(DraftingPen):
         if len(self) == 1:
             return self.align(rect)
         total_width = 0
-        pens = self.pens
+        pens = self._pens
         if r:
             pens = list(reversed(pens))
         start_x = pens[0].ambit(th=pullToEdges).x
@@ -352,8 +352,8 @@ class DraftingPens(DraftingPen):
     def interleave(self, style_fn, direction=-1, recursive=True):
         """Provide a callback-lambda to interleave new DATPens between the existing ones; useful for stroke-ing glyphs, since the stroked glyphs can be placed behind the primary filled glyphs."""
         pens = []
-        for idx, p in enumerate(self.pens):
-            if recursive and hasattr(p, "pens"):
+        for idx, p in enumerate(self._pens):
+            if recursive and hasattr(p, "_pens"):
                 _p = p.interleave(style_fn, direction=direction, recursive=True)
                 pens.append(_p)
             else:
@@ -369,7 +369,7 @@ class DraftingPens(DraftingPen):
                 if direction > 0:
                     pens.extend(np)
 
-        self.pens = pens
+        self._pens = pens
         return self
     
     def understroke(self, s=0, sw=5, outline=False, dofill=0):
@@ -394,8 +394,8 @@ class DraftingPens(DraftingPen):
             cutter = CurveCutter(path)
         if center is not False:
             offset = (cutter.length-self.bounds().w)/2 + center
-        limit = len(self.pens)
-        for idx, p in enumerate(self.pens):
+        limit = len(self._pens)
+        for idx, p in enumerate(self._pens):
             f = p.ambit()
             bs = f.y
             ow = offset + f.x + f.w / 2
@@ -416,8 +416,8 @@ class DraftingPens(DraftingPen):
                 t = t.translate(-f.w*0.5)
                 p.transform(t)
 
-        if limit < len(self.pens):
-            self.pens = self.pens[0:limit]
+        if limit < len(self._pens):
+            self._pens = self._pens[0:limit]
         return self
     
     # deprecated
@@ -428,10 +428,10 @@ class DraftingPens(DraftingPen):
         if `fn` returns a value, it will overwrite
         the pen it was given as an argument;
         fn lambda receives `idx, p` as arguments"""
-        for idx, p in enumerate(self.pens):
+        for idx, p in enumerate(self._pens):
             result = fn(idx, p)
             if result:
-                self.pens[idx] = result
+                self._pens[idx] = result
         return self
     
     def mmap(self, fn: Callable[[int, DraftingPen], None]):
@@ -439,24 +439,24 @@ class DraftingPens(DraftingPen):
         do not look at return value; first m in mmap
         stands for `mutate`;
         fn lambda receives `idx, p` as arguments"""
-        for idx, p in enumerate(self.pens):
+        for idx, p in enumerate(self._pens):
             fn(idx, p)
         return self
     
     def filter(self, fn: Callable[[int, DraftingPen], bool]):
         """Filter top-level pen(s)"""
         dps = self.multi_pen_class()
-        for idx, p in enumerate(self.pens):
+        for idx, p in enumerate(self._pens):
             if fn(idx, p):
                 dps.append(p)
-        #self.pens = dps.pens
+        #self._pens = dps._pens
         #return self
         return dps
     
     def pmap(self, fn):
         """Apply `fn` to all individal pens, recursively"""
-        for idx, p in enumerate(self.pens):
-            if hasattr(p, "pens"):
+        for idx, p in enumerate(self._pens):
+            if hasattr(p, "_pens"):
                 p.pmap(fn)
             else:
                 fn(idx, p)
@@ -465,8 +465,8 @@ class DraftingPens(DraftingPen):
     def pfilter(self, fn):
         """Filter all pens, recursively"""
         to_keep = []
-        for idx, p in enumerate(self.pens):
-            if hasattr(p, "pens"):
+        for idx, p in enumerate(self._pens):
+            if hasattr(p, "_pens"):
                 matches = p.pfilter(fn)
                 if len(matches) > 0:
                     to_keep.extend(matches)
@@ -502,7 +502,7 @@ class DraftingPens(DraftingPen):
             return tagged.copy()
     
     def fmmap(self, filter_fn:Callable[[int, DraftingPen], bool], map_fn:Callable[[int, DraftingPen], None]):
-        for idx, p in enumerate(self.pens):
+        for idx, p in enumerate(self._pens):
             if filter_fn(idx, p):
                 map_fn(idx, p)
         return self
@@ -531,38 +531,38 @@ class DraftingPens(DraftingPen):
             if isinstance(k, str):
                 tagged = self.fft(k)
                 if tagged:
-                    self.pens.remove(tagged)
+                    self._pens.remove(tagged)
             else:
-                self.pens.remove(k)
+                self._pens.remove(k)
         return self
     
     def mfilter(self, fn):
         """Same as `filter` but (m)utates this DATPens
         to now have only the filtered pens"""
-        self.pens = self.filter(fn)
+        self._pens = self.filter(fn)
         return self
     
     def collapseonce(self):
         pens = []
-        for idx, p in enumerate(self.pens):
+        for idx, p in enumerate(self._pens):
             pens.extend(p)
-        self.pens = pens
+        self._pens = pens
         return self
     
     def collapse(self, levels=100, onself=False):
         """AKA `flatten` in some programming contexts, though
         `flatten` is a totally different function here that flattens outlines; this function flattens nested collections into one-dimensional collections"""
         pens = []
-        for idx, p in enumerate(self.pens):
-            if hasattr(p, "pens") and levels > 0:
-                pens.extend(p.collapse(levels=levels-1).pens)
+        for idx, p in enumerate(self._pens):
+            if hasattr(p, "_pens") and levels > 0:
+                pens.extend(p.collapse(levels=levels-1)._pens)
             else:
                 pens.append(p)
         dps = self.multi_pen_class(pens)
         if self.layered:
             dps.layered = True
         if onself:
-            self.pens = dps.pens
+            self._pens = dps._pens
             return self
         else:
             return dps
@@ -574,13 +574,13 @@ class DraftingPens(DraftingPen):
         if self._frame:
             return super().frameSet(th=th, tv=tv)
         dps = self.multi_pen_class()
-        for p in self.pens:
+        for p in self._pens:
             if p._frame:
                 dps.append(p.frameSet(th=th, tv=tv))
         return dps
     
     #def cast(self, _class, *args):
-        #return _class(self.pens)
+        #return _class(self._pens)
     #    res = _class(self, *args)
     #    res.attrs = deepcopy(self.attrs)
     #    return res

@@ -1,4 +1,3 @@
-import asyncio
 from collections import defaultdict
 import functools
 import io
@@ -24,7 +23,7 @@ from fontTools.varLib.models import normalizeValue
 from .baseFont import BaseFont
 from .glyphDrawing import GlyphDrawing
 from .ufoFont import Glyph, NotDefGlyph, UFOState, extractIncludedFeatureFiles
-from ..compile.compilerPool import compileUFOToPath, compileDSToBytes, CompilerError
+from ..compile.compilerPool import compileUFOToPath, compileDSToBytes
 from ..compile.dsCompiler import getTTPaths
 from ..misc.hbShape import HBShape
 from ..misc.properties import cachedProperty
@@ -34,7 +33,7 @@ except:
     pass
 
 
-class DesignSpaceSourceError(CompilerError):
+class DesignSpaceSourceError(Exception):
     pass
 
 
@@ -56,7 +55,7 @@ class DSFont(BaseFont):
         del self.defaultVerticalAdvance
         del self.defaultVerticalOriginY
 
-    async def load(self, outputWriter):
+    def load(self, outputWriter):
         if self.doc is None:
             self.doc = DesignSpaceDocument.fromfile(self.fontPath)
             self.doc.findDefault()
@@ -112,10 +111,9 @@ class DSFont(BaseFont):
                     ttPaths.append(ttPath)
                     output = io.StringIO()
                     outputs.append(output)
-                    coros.append(compileUFOToPath(source.path, ttPath, output.write))
+                    coros.append(compileUFOToPath(source.path, ttPath, None))
 
-            # print(f"compiling {len(coros)} fonts")
-            errors = await asyncio.gather(*coros, return_exceptions=True)
+            errors = []
 
             for sourcePath, exc, output in zip(ufosToCompile, errors, outputs):
                 output = output.getvalue()
@@ -141,7 +139,7 @@ class DSFont(BaseFont):
                 # self.ttFont and self.shaper are still up-to-date
                 return
 
-            vfFontData = await compileDSToBytes(self.fontPath, ttFolder, outputWriter)
+            vfFontData = compileDSToBytes(self.fontPath, ttFolder, outputWriter)
 
         f = io.BytesIO(vfFontData)
         self.ttFont = TTFont(f, lazy=True)
@@ -150,10 +148,10 @@ class DSFont(BaseFont):
         assert len(self.masterModel.deltaWeights) == len(self.doc.sources)
 
         self.shaper = HBShape(vfFontData,
-                              getHorizontalAdvance=self._getHorizontalAdvance,
-                              getVerticalAdvance=self._getVerticalAdvance,
-                              getVerticalOrigin=self._getVerticalOrigin,
-                              ttFont=self.ttFont)
+                            getHorizontalAdvance=self._getHorizontalAdvance,
+                            getVerticalAdvance=self._getVerticalAdvance,
+                            getVerticalOrigin=self._getVerticalOrigin,
+                            ttFont=self.ttFont)
         self._needsVFRebuild = False
 
     def getExternalFiles(self):
@@ -174,8 +172,7 @@ class DSFont(BaseFont):
             for sourcePath, sourceLayerName in self._sourceFiles.get(externalFilePath, ()):
                 sourceKey = sourcePath, sourceLayerName
                 self._ufos[sourceKey] = self._ufos[sourceKey].newState()
-                (needsFeaturesUpdate, needsGlyphUpdate,
-                 needsInfoUpdate, needsCmapUpdate, needsLibUpdate) = self._ufos[sourceKey].getUpdateInfo()
+                (needsFeaturesUpdate, needsGlyphUpdate,needsInfoUpdate, needsCmapUpdate, needsLibUpdate) = self._ufos[sourceKey].getUpdateInfo()
                 if sourceLayerName is not None:
                     # We don't compile features for layer masters
                     needsFeaturesUpdate = False
@@ -327,7 +324,7 @@ FT_CURVE_TAG_CONIC = 0
 FT_CURVE_TAG_CUBIC = 2
 
 segmentTypes = {FT_CURVE_TAG_ON: "line", FT_CURVE_TAG_CONIC: "qcurve", FT_CURVE_TAG_CUBIC: "curve"}
-coordinateType = numpy.float
+coordinateType = float
 
 
 def interpolateFromDeltas(model, varLocation, deltas):
