@@ -560,8 +560,10 @@ class DraftingPen(RecordingPen, SHContext):
             img["rect"] = img["rect"].transform(transform)
         return self
     
-    def align(self, rect, x="mdx", y="mdy", th=True, tv=False, transformFrame=True):
+    def align(self, rect, x="mdx", y="mdy", th=True, tv=False, transformFrame=True, h=None):
         r = self.ambit(th, tv)
+        if h is not None:
+            r = r.seth(h)
         self.translate(*align(r, rect, x, y), transformFrame=transformFrame)
         return self
     
