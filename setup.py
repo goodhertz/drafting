@@ -21,6 +21,7 @@ setuptools.setup(
         "drafting.grid",
         "drafting.pens",
         "drafting.text",
+        "drafting.time",
         "drafting.color",
         "drafting.geometry",
         "drafting.fontgoggles",
@@ -44,6 +45,8 @@ setuptools.setup(
         "fonttools[ufo]",
         "fontPens",
         "more-itertools",
+        "easing-functions",
+        "timecode",
     ],
     classifiers=[
         "Programming Language :: Python :: 3",
