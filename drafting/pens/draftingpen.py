@@ -51,6 +51,7 @@ class DraftingPen(RecordingPen, SHContext):
 
         self._current_attr_tag = "default"
         self.clearAttrs()
+        self.data = {}
 
         self.defs = None
         self.macros = {}
@@ -484,6 +485,13 @@ class DraftingPen(RecordingPen, SHContext):
             if len(pts) > 0:
                 self.value[idx] = list(self.value[idx])
                 self.value[idx][-1] = [Point(p) for p in self.value[idx][-1]]
+        return self
+    
+    def add_data(self, key, value=None):
+        if value is None:
+            self.data = key
+        else:
+            self.data[key] = value
         return self
     
     def copy(self, with_data=False):
@@ -1181,7 +1189,7 @@ class DraftingPen(RecordingPen, SHContext):
     
     def sw(self, value):
         """Get/set a (s)troke (w)idth"""
-        if value:
+        if value is not None:
             return self.attr(strokeWidth=value)
         else:
             return self.attr(field="strokeWidth")

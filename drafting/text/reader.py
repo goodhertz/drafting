@@ -336,8 +336,9 @@ class Style():
                 variations[k] = axis.maxValue
             elif v == "default":
                 variations[k] = axis.defaultValue
-            elif scale and v <= 1.0:
-                variations[k] = float(abs(axis.maxValue-axis.minValue)*v + axis.minValue)
+            elif scale:
+                _v = max(0, min(1, v))
+                variations[k] = float(abs(axis.maxValue-axis.minValue)*_v + axis.minValue)
             else:
                 if v < axis.minValue or v > axis.maxValue:
                     variations[k] = max(axis.minValue, min(axis.maxValue, v))
