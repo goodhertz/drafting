@@ -29,6 +29,9 @@ class b3d_animation(Timeable):
         self.timeline = Timeline(duration)
         self.t = self.timeline
     
+    def update(self):
+        self.func(Frame(self.current_frame, self))
+    
     def __call__(self, func):
         self.func = func
         if not self.name:
@@ -37,8 +40,11 @@ class b3d_animation(Timeable):
         def _frame_update_handler(scene):
             if scene.frame_current != self.current_frame:
                 self.current_frame = scene.frame_current
-                self.func(Frame(self.current_frame, self))
+                self.update()
         
         bpy.app.handlers.frame_change_post.clear() # TODO look for closure one only?
         bpy.app.handlers.frame_change_post.append(_frame_update_handler)
+
+        self.current_frame = bpy.context.scene.frame_current
+        self.update()
         return self
