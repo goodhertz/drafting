@@ -15,26 +15,30 @@ except ImportError:
     print("no bpy")
     pass
 
-# def bldraw(p:DraftingPen):
-#     p.cast(DrawBotPen).draw()
-#     return p
+from drafting.time.timeline import Timeline
+from drafting.time.timeable import Timeable
+from drafting.time import Frame
 
-class bl_frame_animation():
-    """
-    """
-    def __init__(self):
+class b3d_animation(Timeable):
+    def __init__(self, duration=10): # TODO possible to read from project?
         self.func = None
         self.name = None
         self.current_frame = -1
+        self.start = 0
+        self.end = duration
+        self.timeline = Timeline(duration)
+        self.t = self.timeline
     
     def __call__(self, func):
-        def _frame_update_handler(scene):
-            if scene.frame_current != self.current_frame:
-                self.current_frame = scene.frame_current
-                # make a real frame object here
-                # to get real easing, etc.
-
         self.func = func
         if not self.name:
             self.name = self.func.__name__
+
+        def _frame_update_handler(scene):
+            if scene.frame_current != self.current_frame:
+                self.current_frame = scene.frame_current
+                self.func(Frame(self.current_frame, self))
+        
+        bpy.app.handlers.frame_change_post.clear() # TODO look for closure one only?
+        bpy.app.handlers.frame_change_post.append(_frame_update_handler)
         return self
