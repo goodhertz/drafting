@@ -72,10 +72,12 @@ def normalize_font_prefix(path_string):
         path_string = path_string.replace(prefix, expansion)
     return Path(path_string).expanduser().resolve()
 
-def normalize_font_path(font):
+def normalize_font_path(font, nonexist_ok=False):
     global _prefixes
     literal = normalize_font_prefix(str(font))
     ufo = literal.suffix == ".ufo"
+    if nonexist_ok:
+        return str(literal)
     if literal.exists() and (not literal.is_dir() or ufo):
         return str(literal)
     else:
