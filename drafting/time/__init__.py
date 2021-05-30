@@ -23,14 +23,19 @@ class Frame():
     def adj(self, off):
         return Frame(self.i+off, self.a)
     
-    def e(self, easefn="eeio", loops=0, cyclic=True):
+    def e(self, easefn="eeio", loops=0, rng=(0, 1), cyclic=True):
         if not isinstance(easefn, str):
             loops = easefn
             easefn = "eeio"
-        return self.a.progress(self.i%self.a.duration, loops=loops, easefn=easefn, cyclic=cyclic, to1=True).e
+        e = self.a.progress(self.i%self.a.duration, loops=loops, easefn=easefn, cyclic=cyclic, to1=True).e
+        ra, rb = rng
+        if ra > rb:
+            e = 1 - e
+            rb, ra = ra, rb
+        return ra + e*(rb - ra)
     
     def ie(self, *args, **kwargs):
-        return 1-self.e(*args, **kwargs)
+        return self.e(*args, **kwargs, rng=(1, 0))
     
     def last_render(self, modfn=lambda p: p):
         if not self.a.composites:

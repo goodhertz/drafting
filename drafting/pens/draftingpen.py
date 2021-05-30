@@ -568,11 +568,14 @@ class DraftingPen(RecordingPen, SHContext):
             img["rect"] = img["rect"].transform(transform)
         return self
     
-    def align(self, rect, x="mdx", y="mdy", th=True, tv=False, transformFrame=True, h=None):
+    def align(self, rect, x="mdx", y="mdy", th=True, tv=False, transformFrame=True, h=None, return_offset=False):
         r = self.ambit(th, tv)
         if h is not None:
             r = r.seth(h)
-        self.translate(*align(r, rect, x, y), transformFrame=transformFrame)
+        offset = align(r, rect, x, y)
+        self.translate(*offset, transformFrame=transformFrame)
+        if return_offset:
+            return offset
         return self
     
     def x_align_to_frame(self, x=Edge.CenterX, th=0):
@@ -798,7 +801,7 @@ class DraftingPen(RecordingPen, SHContext):
             pts = list(pts)
             for pidx, p in enumerate(pts):
                 x, y = p
-                if filter_fn and not filter_fn(p):
+                if filter_fn and not filter_fn(*p):
                     continue
                 result = fn(idx, x, y)
                 if result:

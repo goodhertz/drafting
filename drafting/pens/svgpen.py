@@ -300,6 +300,9 @@ class SVGPen(DrawablePenMixin, SVGPathPen):
         for attrs, attr in self.findStyledAttrs(style):
             self.applyDATAttribute(attrs, attr)
         self.path.set("d", self.getCommands())
+        tag = self.dat.tag()
+        if tag:
+            self.path.set("data-tag", tag)
         g = etree.Element("g")
         defs = etree.Element("defs")
         for d in self.defs:
