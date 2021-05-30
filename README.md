@@ -1,3 +1,9 @@
+# DEPRECATED
+# DEPRECATED
+# DEPRECATED
+
+# Functionality has been moved into coldtype itself
+
 # Drafting
 
 Headless utilities for graphics programming in Python, meant for use in graphics programming environments like Coldtype, DrawBot, Blender, or hardware drawing machines like AxiDraw.
