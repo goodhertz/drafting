@@ -289,9 +289,13 @@ class DraftingPens(DraftingPen):
             pen.xAlignToFrame(x)
         return self
     
-    def distribute(self, v=False):
+    def distribute(self, v=False, tracks=None):
         off = 0
-        for p in self:
+        for idx, p in enumerate(self):
+            if tracks is not None and idx > 0:
+                t = tracks[idx-1]
+                #print(t)
+                off += t
             frame = p.ambit()
             if v:
                 if frame.y < 0:

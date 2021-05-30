@@ -505,7 +505,7 @@ class DraftingPen(RecordingPen, SHContext):
 
         if with_data:
             dp.data = self.data
-            if dp._frame:
+            if self._frame:
                 dp._frame = self._frame
             if hasattr(self, "macros"):
                 dp.macros = self.macros
